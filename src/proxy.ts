@@ -5,6 +5,7 @@ const AUTH_COOKIE = "hb-auth-token";
 
 // Routes that require a session.
 const PROTECTED = ["/account", "/checkout"];
+// TODO(#22): email verification is advisory — protected routes don't enforce emailVerified.
 // Routes a signed-in user shouldn't see (verify-email is intentionally excluded —
 // authenticated-but-unverified users still need it).
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];

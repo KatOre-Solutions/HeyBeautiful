@@ -7,6 +7,9 @@ import { X, ShoppingBag, Minus, Plus, ArrowRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
+// TODO(#19): this drawer shell duplicates WishlistSidebar — extract a shared <SideDrawer>.
+// TODO(#21): replace inline colour/easing literals here with theme tokens + ease.cinematic.
+
 export default function CartSidebar() {
   const {
     items,

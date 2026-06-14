@@ -8,6 +8,7 @@ import { fadeUp, staggerContainer, scaleIn } from "@/lib/motion";
 import { useCart } from "@/context/CartContext";
 
 // Cart ids are offset (1000+) so bundles never collide with product ids (1–5).
+// TODO(#20): fragile magic-number scheme — switch to namespaced keys (bundle:glow).
 const bundles = [
   {
     id: "glow",
