@@ -7,6 +7,7 @@ import { Heart, ShoppingBag, Star } from "lucide-react";
 import { fadeUp, staggerContainer, staggerContainerSlow } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCart } from "@/context/CartContext";
 
 const products = [
   {
@@ -150,12 +151,18 @@ function WishlistHeart({ product }: { product: WishlistProduct }) {
 
 function ProductCard({ product, index }: { product: (typeof products)[0]; index: number }) {
   const [hovered, setHovered] = useState(false);
-  const [addedToCart, setAddedToCart] = useState(false);
+  const { addItem } = useCart();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
+    e.stopPropagation();
+    addItem({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      price: product.price,
+      image: product.image,
+    });
   };
 
   return (
@@ -218,13 +225,13 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
                 onClick={handleAddToCart}
                 className="flex items-center gap-2 px-6 py-3 rounded-full text-white text-[10px] font-semibold tracking-[0.1em] uppercase transition-all pointer-events-auto"
                 style={{
-                  background: addedToCart ? "rgba(67,97,238,0.9)" : "rgba(201,151,122,0.95)",
+                  background: "rgba(201,151,122,0.95)",
                   backdropFilter: "blur(8px)",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
                 }}
               >
                 <ShoppingBag size={13} />
-                {addedToCart ? "Added!" : "Add to Bag"}
+                Add to Bag
               </motion.button>
             </motion.div>
           )}

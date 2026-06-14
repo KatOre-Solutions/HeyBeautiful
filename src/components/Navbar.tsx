@@ -11,9 +11,11 @@ import {
   useMotionValue,
   useSpring,
 } from "framer-motion";
-import { ShoppingBag, Heart, Search, Menu, X } from "lucide-react";
+import { ShoppingBag, Heart, Search, Menu, X, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 const navLinks = [
   { label: "Shop", href: "#products" },
@@ -26,8 +28,10 @@ const navLinks = [
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isHero, setIsHero] = useState(true);
-  const [cartCount] = useState(0);
   const { items: wishlistItems, setWishlistOpen } = useWishlist();
+  const { itemCount, setCartOpen } = useCart();
+  const { user } = useAuth();
+  const firstName = user?.displayName?.split(" ")[0] ?? "";
 
   const { scrollY } = useScroll();
 
@@ -132,8 +136,9 @@ export default function Navbar() {
               {/* Icon buttons */}
               {[
                 { Icon: Search, label: "Search", href: null, badge: null, onClick: null },
+                { Icon: User, label: user ? "My Account" : "Sign In", href: user ? "/account" : "/login", badge: null, onClick: null },
                 { Icon: Heart, label: "Wishlist", href: null, badge: wishlistItems.length, onClick: () => setWishlistOpen(true) },
-                { Icon: ShoppingBag, label: "Cart", href: "#", badge: cartCount, onClick: null },
+                { Icon: ShoppingBag, label: "Cart", href: null, badge: itemCount, onClick: () => setCartOpen(true) },
               ].map(({ Icon, label, href, badge, onClick }) => {
                 const btn = (
                   <motion.div
@@ -309,7 +314,35 @@ export default function Navbar() {
                 </nav>
 
                 <div className="mt-auto">
-                  <div className="h-px w-full mb-8" style={{ background: "rgba(255,255,255,0.08)" }} />
+                  <div className="h-px w-full mb-6" style={{ background: "rgba(255,255,255,0.08)" }} />
+
+                  {/* Auth link */}
+                  <Link
+                    href={user ? "/account" : "/login"}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 mb-5 transition-colors duration-300"
+                    style={{ color: user ? "#e8c4ad" : "rgba(255,255,255,0.75)" }}
+                  >
+                    <span
+                      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: "rgba(255,255,255,0.08)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      <User size={16} />
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-cormorant)",
+                        fontSize: "1.35rem",
+                        fontWeight: 400,
+                      }}
+                    >
+                      {user ? `Hi, ${firstName || "Beautiful"}` : "Sign In"}
+                    </span>
+                  </Link>
+
                   <Link
                     href="#products"
                     onClick={() => setMobileOpen(false)}

@@ -5,10 +5,13 @@ import Image from "next/image";
 import { motion, useInView } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { fadeUp, staggerContainer, scaleIn } from "@/lib/motion";
+import { useCart } from "@/context/CartContext";
 
+// Cart ids are offset (1000+) so bundles never collide with product ids (1–5).
 const bundles = [
   {
     id: "glow",
+    cartId: 1001,
     name: "Glow Bundle",
     tagline: "Radiance from within",
     description:
@@ -23,6 +26,7 @@ const bundles = [
   },
   {
     id: "recovery",
+    cartId: 1002,
     name: "Recovery Bundle",
     tagline: "Rest. Repair. Rise.",
     description:
@@ -37,6 +41,7 @@ const bundles = [
   },
   {
     id: "morning",
+    cartId: 1003,
     name: "Morning Ritual Bundle",
     tagline: "Start with intention",
     description:
@@ -51,6 +56,7 @@ const bundles = [
   },
   {
     id: "strength",
+    cartId: 1004,
     name: "Strength Bundle",
     tagline: "Power. Performance. Pride.",
     description:
@@ -134,6 +140,18 @@ function BundleCard({
   index: number;
   isInView: boolean;
 }) {
+  const { addItem } = useCart();
+
+  const handleAddBundle = () => {
+    addItem({
+      id: bundle.cartId,
+      name: bundle.name,
+      category: "Bundle",
+      price: bundle.price,
+      image: bundle.products[0],
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
@@ -208,6 +226,7 @@ function BundleCard({
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.97 }}
+                onClick={handleAddBundle}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-[10px] font-semibold tracking-wide uppercase transition-all"
                 style={{
                   background: bundle.accentColor,
