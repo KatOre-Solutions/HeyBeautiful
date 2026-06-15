@@ -18,11 +18,12 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
 const navLinks = [
-  { label: "Shop", href: "#products" },
-  { label: "Bundles", href: "#bundles" },
-  { label: "Our Story", href: "#story" },
-  { label: "Wellness", href: "#benefits" },
-  { label: "Community", href: "#community" },
+  { label: "Store", href: "/store" },
+  // Route-aware anchors so they scroll to the homepage section from any page.
+  { label: "Bundles", href: "/#bundles" },
+  { label: "Our Story", href: "/#story" },
+  { label: "Wellness", href: "/#benefits" },
+  { label: "Community", href: "/#community" },
 ];
 
 export default function Navbar() {
@@ -184,7 +185,7 @@ export default function Navbar() {
               })}
 
               {/* CTA pill — matches reference image style */}
-              <Link href="#products" className="hidden md:block ml-1">
+              <Link href="/store" className="hidden md:block ml-1">
                 <motion.div
                   animate={
                     isHero
@@ -344,7 +345,7 @@ export default function Navbar() {
                   </Link>
 
                   <Link
-                    href="#products"
+                    href="/store"
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full text-[#1e1814] font-semibold text-xs tracking-[0.12em] uppercase transition-all hover:opacity-90"
                     style={{ background: "rgba(255,255,255,0.93)" }}
