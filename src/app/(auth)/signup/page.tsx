@@ -117,7 +117,7 @@ export default function SignupPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="text-[#1e1814]/40 hover:text-[#c9977a] transition-colors"
+                  className="text-ink/40 hover:text-rose-gold transition-colors"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -180,15 +180,15 @@ export default function SignupPage() {
                 className="w-3.5 h-3.5 mt-0.5 rounded accent-[#c9977a] flex-shrink-0"
               />
               <span
-                className="text-[#1e1814]/55 leading-snug"
+                className="text-ink/55 leading-snug"
                 style={{ fontFamily: "var(--font-manrope)", fontSize: "0.78rem" }}
               >
                 I agree to the{" "}
-                <Link href="#" className="text-[#c9977a] hover:opacity-70">
+                <Link href="#" className="text-rose-gold hover:opacity-70">
                   Terms
                 </Link>{" "}
                 &{" "}
-                <Link href="#" className="text-[#c9977a] hover:opacity-70">
+                <Link href="#" className="text-rose-gold hover:opacity-70">
                   Privacy Policy
                 </Link>
               </span>
@@ -225,13 +225,13 @@ export default function SignupPage() {
 
         <motion.p
           variants={fadeUp}
-          className="text-center text-[#1e1814]/55"
+          className="text-center text-ink/55"
           style={{ fontFamily: "var(--font-manrope)", fontSize: "0.82rem" }}
         >
           Already a member?{" "}
           <Link
             href="/login"
-            className="text-[#c9977a] font-medium hover:opacity-70 transition-opacity"
+            className="text-rose-gold font-medium hover:opacity-70 transition-opacity"
           >
             Sign in
           </Link>

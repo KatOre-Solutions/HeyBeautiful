@@ -47,7 +47,7 @@ export default function VerifyEmailPage() {
   if (loading || !user) {
     return (
       <div className="w-full max-w-sm flex items-center justify-center">
-        <span className="label-caps text-[#c9977a]/70" style={{ fontSize: "11px" }}>
+        <span className="label-caps text-rose-gold/70" style={{ fontSize: "11px" }}>
           Loading…
         </span>
       </div>
@@ -66,19 +66,19 @@ export default function VerifyEmailPage() {
               border: "1px solid rgba(201,151,122,0.22)",
             }}
           >
-            <Mail size={40} className="text-[#c9977a]" />
+            <Mail size={40} className="text-rose-gold" />
           </motion.div>
 
           <motion.p
             variants={fadeUp}
-            className="text-[#1e1814]/55"
+            className="text-ink/55"
             style={{ fontFamily: "var(--font-manrope)", fontSize: "0.88rem" }}
           >
             We&apos;ve sent a verification link to:
           </motion.p>
           <motion.p
             variants={fadeUp}
-            className="text-[#1e1814] mb-1 mt-1"
+            className="text-ink mb-1 mt-1"
             style={{
               fontFamily: "var(--font-cormorant)",
               fontSize: "1.3rem",
@@ -89,7 +89,7 @@ export default function VerifyEmailPage() {
           </motion.p>
           <motion.p
             variants={fadeUp}
-            className="text-[#1e1814]/45 leading-relaxed mb-7 max-w-xs"
+            className="text-ink/45 leading-relaxed mb-7 max-w-xs"
             style={{ fontFamily: "var(--font-manrope)", fontSize: "0.8rem" }}
           >
             Click the link in your email to activate your account and start
@@ -107,9 +107,9 @@ export default function VerifyEmailPage() {
                   exit={{ opacity: 0 }}
                   className="flex items-center justify-center gap-2 py-3"
                 >
-                  <CheckCircle size={16} className="text-[#c9977a]" />
+                  <CheckCircle size={16} className="text-rose-gold" />
                   <span
-                    className="text-[#c9977a]"
+                    className="text-rose-gold"
                     style={{ fontFamily: "var(--font-manrope)", fontSize: "0.82rem" }}
                   >
                     Verification email sent
@@ -149,7 +149,7 @@ export default function VerifyEmailPage() {
             variants={fadeUp}
             type="button"
             onClick={handleSignOut}
-            className="mt-5 text-[#1e1814]/45 hover:text-[#c9977a] transition-colors"
+            className="mt-5 text-ink/45 hover:text-rose-gold transition-colors"
             style={{ fontFamily: "var(--font-manrope)", fontSize: "0.8rem" }}
           >
             Wrong email? Sign out

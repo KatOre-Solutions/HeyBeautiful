@@ -26,7 +26,7 @@ export default function CheckoutContent() {
         className="min-h-screen flex items-center justify-center"
         style={{ background: "#faf7f4" }}
       >
-        <span className="label-caps text-[#c9977a]/70" style={{ fontSize: "11px" }}>
+        <span className="label-caps text-rose-gold/70" style={{ fontSize: "11px" }}>
           Loading…
         </span>
       </section>
@@ -47,13 +47,13 @@ export default function CheckoutContent() {
         >
           <motion.span
             variants={fadeUp}
-            className="label-caps text-[#c9977a] block mb-4"
+            className="label-caps text-rose-gold block mb-4"
           >
             Checkout
           </motion.span>
           <motion.h1
             variants={fadeUp}
-            className="heading-display text-[#1e1814]"
+            className="heading-display text-ink"
             style={{
               fontFamily: "var(--font-cormorant)",
               fontSize: "clamp(2.25rem, 5vw, 3.5rem)",
@@ -71,7 +71,7 @@ export default function CheckoutContent() {
             className="text-center"
           >
             <p
-              className="text-[#1e1814]/55 mb-6"
+              className="text-ink/55 mb-6"
               style={{ fontFamily: "var(--font-manrope)", fontSize: "0.9rem" }}
             >
               Your bag is empty.
@@ -119,7 +119,7 @@ export default function CheckoutContent() {
                       {item.name}
                     </p>
                     <p
-                      className="text-[#1e1814]/50"
+                      className="text-ink/50"
                       style={{ fontFamily: "var(--font-manrope)", fontSize: "0.75rem" }}
                     >
                       Qty {item.quantity}
@@ -143,7 +143,7 @@ export default function CheckoutContent() {
               className="flex items-center justify-between mt-6 pt-6"
               style={{ borderTop: "1px solid rgba(201,151,122,0.18)" }}
             >
-              <span className="label-caps text-[#1e1814]/55" style={{ fontSize: "10px" }}>
+              <span className="label-caps text-ink/55" style={{ fontSize: "10px" }}>
                 Total
               </span>
               <span
@@ -167,9 +167,9 @@ export default function CheckoutContent() {
                 border: "1px dashed rgba(201,151,122,0.35)",
               }}
             >
-              <Lock size={13} className="text-[#c9977a]" />
+              <Lock size={13} className="text-rose-gold" />
               <span
-                className="text-[#1e1814]/65"
+                className="text-ink/65"
                 style={{ fontFamily: "var(--font-manrope)", fontSize: "0.8rem" }}
               >
                 Secure payment coming soon

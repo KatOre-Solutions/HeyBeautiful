@@ -13,7 +13,8 @@ import {
 const STORAGE_KEY = "hb-cart";
 
 export interface CartProduct {
-  id: number;
+  /** Namespaced key, e.g. "product:1" or "bundle:glow" — never a bare number. */
+  id: string;
   name: string;
   category: string;
   price: number;
@@ -26,9 +27,9 @@ interface CartContextType {
   cartOpen: boolean;
   setCartOpen: (open: boolean) => void;
   addItem: (product: Omit<CartProduct, "quantity">) => void;
-  removeItem: (id: number) => void;
-  updateQuantity: (id: number, quantity: number) => void;
-  isInCart: (id: number) => boolean;
+  removeItem: (id: string) => void;
+  updateQuantity: (id: string, quantity: number) => void;
+  isInCart: (id: string) => boolean;
   clearCart: () => void;
   itemCount: number;
   totalPrice: number;
@@ -51,7 +52,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setItems(JSON.parse(raw) as CartProduct[]);
+      if (raw) {
+        // Drop legacy entries with numeric ids (pre-#20): they no longer map to
+        // any product and could collide with the new namespaced keys.
+        const restored = (JSON.parse(raw) as CartProduct[]).filter(
+          (p) => typeof p.id === "string"
+        );
+        setItems(restored);
+      }
     } catch {
       // Corrupt/unavailable storage — start with an empty cart.
     }
@@ -82,11 +90,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setLastAdded({ product: { ...product, quantity: 1 }, key: Date.now() });
   }, []);
 
-  const removeItem = useCallback((id: number) => {
+  const removeItem = useCallback((id: string) => {
     setItems((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  const updateQuantity = useCallback((id: number, quantity: number) => {
+  const updateQuantity = useCallback((id: string, quantity: number) => {
     setItems((prev) =>
       quantity <= 0
         ? prev.filter((p) => p.id !== id)
@@ -95,7 +103,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isInCart = useCallback(
-    (id: number) => items.some((p) => p.id === id),
+    (id: string) => items.some((p) => p.id === id),
     [items]
   );
 
@@ -143,9 +151,9 @@ export function useCart() {
       cartOpen: false,
       setCartOpen: (_: boolean) => {},
       addItem: (_: Omit<CartProduct, "quantity">) => {},
-      removeItem: (_: number) => {},
-      updateQuantity: (_: number, __: number) => {},
-      isInCart: (_: number) => false,
+      removeItem: (_: string) => {},
+      updateQuantity: (_: string, __: number) => {},
+      isInCart: (_: string) => false,
       clearCart: () => {},
       itemCount: 0,
       totalPrice: 0,

@@ -11,7 +11,7 @@ import { useCart } from "@/context/CartContext";
 
 const products = [
   {
-    id: 1,
+    id: "product:1",
     name: "Glow Collagen Blend",
     category: "Beauty Support",
     price: 54,
@@ -24,7 +24,7 @@ const products = [
     tags: ["Skin", "Hair", "Nails"],
   },
   {
-    id: 2,
+    id: "product:2",
     name: "Plant Protein Luxe",
     category: "Performance",
     price: 62,
@@ -37,7 +37,7 @@ const products = [
     tags: ["Protein", "Recovery", "Clean"],
   },
   {
-    id: 3,
+    id: "product:3",
     name: "Morning Glow Ritual",
     category: "Wellness",
     price: 48,
@@ -50,7 +50,7 @@ const products = [
     tags: ["Energy", "Mood", "Focus"],
   },
   {
-    id: 4,
+    id: "product:4",
     name: "Recovery Rose Blend",
     category: "Recovery",
     price: 44,
@@ -63,7 +63,7 @@ const products = [
     tags: ["Sleep", "Repair", "Calm"],
   },
   {
-    id: 5,
+    id: "product:5",
     name: "Strength & Radiance",
     category: "Performance",
     price: 58,
@@ -77,7 +77,7 @@ const products = [
   },
 ];
 
-type WishlistProduct = { id: number; name: string; category: string; price: number; image: string };
+type WishlistProduct = { id: string; name: string; category: string; price: number; image: string };
 
 function WishlistHeart({ product }: { product: WishlistProduct }) {
   const { toggleItem, isWishlisted } = useWishlist();

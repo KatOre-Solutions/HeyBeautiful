@@ -62,7 +62,7 @@ export default function AccountContent() {
         style={{ background: "#faf7f4" }}
       >
         <span
-          className="label-caps text-[#c9977a]/70"
+          className="label-caps text-rose-gold/70"
           style={{ fontSize: "11px" }}
         >
           Loading…
@@ -85,13 +85,13 @@ export default function AccountContent() {
         >
           <motion.span
             variants={fadeUp}
-            className="label-caps text-[#c9977a] block mb-4"
+            className="label-caps text-rose-gold block mb-4"
           >
             My Account
           </motion.span>
           <motion.h1
             variants={fadeUp}
-            className="heading-display text-[#1e1814]"
+            className="heading-display text-ink"
             style={{
               fontFamily: "var(--font-cormorant)",
               fontSize: "clamp(2.5rem, 5vw, 4rem)",
@@ -110,16 +110,16 @@ export default function AccountContent() {
                 border: "1px solid rgba(201,151,122,0.25)",
               }}
             >
-              <Mail size={13} className="text-[#c9977a]" />
+              <Mail size={13} className="text-rose-gold" />
               <span
-                className="text-[#1e1814]/65"
+                className="text-ink/65"
                 style={{ fontFamily: "var(--font-manrope)", fontSize: "0.75rem" }}
               >
                 Please verify your email
               </span>
               <button
                 onClick={() => router.push("/verify-email")}
-                className="text-[#c9977a] font-medium hover:opacity-70"
+                className="text-rose-gold font-medium hover:opacity-70"
                 style={{ fontFamily: "var(--font-manrope)", fontSize: "0.75rem" }}
               >
                 Verify now →
@@ -155,10 +155,10 @@ export default function AccountContent() {
                   border: "1px solid rgba(201,151,122,0.22)",
                 }}
               >
-                <Icon size={20} className="text-[#c9977a]" />
+                <Icon size={20} className="text-rose-gold" />
               </div>
               <h3
-                className="text-[#1e1814] mb-1.5"
+                className="text-ink mb-1.5"
                 style={{
                   fontFamily: "var(--font-cormorant)",
                   fontSize: "1.4rem",
@@ -168,7 +168,7 @@ export default function AccountContent() {
                 {title}
               </h3>
               <p
-                className="text-[#1e1814]/50 leading-relaxed"
+                className="text-ink/50 leading-relaxed"
                 style={{ fontFamily: "var(--font-manrope)", fontSize: "0.85rem" }}
               >
                 {copy}

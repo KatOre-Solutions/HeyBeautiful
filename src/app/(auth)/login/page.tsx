@@ -92,7 +92,7 @@ function LoginForm() {
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="text-[#1e1814]/40 hover:text-[#c9977a] transition-colors"
+                className="text-ink/40 hover:text-rose-gold transition-colors"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -113,7 +113,7 @@ function LoginForm() {
                 className="w-3.5 h-3.5 rounded accent-[#c9977a]"
               />
               <span
-                className="text-[#1e1814]/55"
+                className="text-ink/55"
                 style={{ fontFamily: "var(--font-manrope)", fontSize: "0.78rem" }}
               >
                 Remember me
@@ -121,7 +121,7 @@ function LoginForm() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-[#c9977a] hover:opacity-70 transition-opacity"
+              className="text-rose-gold hover:opacity-70 transition-opacity"
               style={{ fontFamily: "var(--font-manrope)", fontSize: "0.78rem" }}
             >
               Forgot password?
@@ -147,13 +147,13 @@ function LoginForm() {
 
         <motion.p
           variants={fadeUp}
-          className="text-center text-[#1e1814]/55"
+          className="text-center text-ink/55"
           style={{ fontFamily: "var(--font-manrope)", fontSize: "0.82rem" }}
         >
           New here?{" "}
           <Link
             href="/signup"
-            className="text-[#c9977a] font-medium hover:opacity-70 transition-opacity"
+            className="text-rose-gold font-medium hover:opacity-70 transition-opacity"
           >
             Create an account
           </Link>

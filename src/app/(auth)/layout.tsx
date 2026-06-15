@@ -54,7 +54,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <div className="relative z-10 text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
             <div className="h-px w-8" style={{ background: "rgba(201,151,122,0.6)" }} />
-            <span className="label-caps text-[#c9977a]/90">
+            <span className="label-caps text-rose-gold/90">
               Premium Feminine Wellness
             </span>
             <div className="h-px w-8" style={{ background: "rgba(201,151,122,0.6)" }} />

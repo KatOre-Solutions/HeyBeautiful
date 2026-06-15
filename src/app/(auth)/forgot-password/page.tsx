@@ -54,10 +54,10 @@ export default function ForgotPasswordPage() {
                   border: "1px solid rgba(201,151,122,0.25)",
                 }}
               >
-                <CheckCircle size={32} className="text-[#c9977a]" />
+                <CheckCircle size={32} className="text-rose-gold" />
               </div>
               <h3
-                className="text-[#1e1814] mb-2"
+                className="text-ink mb-2"
                 style={{
                   fontFamily: "var(--font-cormorant)",
                   fontSize: "1.6rem",
@@ -67,11 +67,11 @@ export default function ForgotPasswordPage() {
                 Check your inbox
               </h3>
               <p
-                className="text-[#1e1814]/55 leading-relaxed mb-7 max-w-xs"
+                className="text-ink/55 leading-relaxed mb-7 max-w-xs"
                 style={{ fontFamily: "var(--font-manrope)", fontSize: "0.85rem" }}
               >
                 A password reset link has been sent to{" "}
-                <span className="text-[#1e1814] font-medium">{email}</span>.
+                <span className="text-ink font-medium">{email}</span>.
               </p>
               <Link href="/login" className="btn-outline">
                 Back to Sign In
@@ -112,7 +112,7 @@ export default function ForgotPasswordPage() {
               <motion.div variants={fadeUp} className="text-center">
                 <Link
                   href="/login"
-                  className="text-[#1e1814]/50 hover:text-[#c9977a] transition-colors"
+                  className="text-ink/50 hover:text-rose-gold transition-colors"
                   style={{ fontFamily: "var(--font-manrope)", fontSize: "0.82rem" }}
                 >
                   ← Back to Sign In

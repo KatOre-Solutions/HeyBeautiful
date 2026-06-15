@@ -7,12 +7,9 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { fadeUp, staggerContainer, scaleIn } from "@/lib/motion";
 import { useCart } from "@/context/CartContext";
 
-// Cart ids are offset (1000+) so bundles never collide with product ids (1–5).
-// TODO(#20): fragile magic-number scheme — switch to namespaced keys (bundle:glow).
 const bundles = [
   {
     id: "glow",
-    cartId: 1001,
     name: "Glow Bundle",
     tagline: "Radiance from within",
     description:
@@ -27,7 +24,6 @@ const bundles = [
   },
   {
     id: "recovery",
-    cartId: 1002,
     name: "Recovery Bundle",
     tagline: "Rest. Repair. Rise.",
     description:
@@ -42,7 +38,6 @@ const bundles = [
   },
   {
     id: "morning",
-    cartId: 1003,
     name: "Morning Ritual Bundle",
     tagline: "Start with intention",
     description:
@@ -57,7 +52,6 @@ const bundles = [
   },
   {
     id: "strength",
-    cartId: 1004,
     name: "Strength Bundle",
     tagline: "Power. Performance. Pride.",
     description:
@@ -145,7 +139,7 @@ function BundleCard({
 
   const handleAddBundle = () => {
     addItem({
-      id: bundle.cartId,
+      id: `bundle:${bundle.id}`,
       name: bundle.name,
       category: "Bundle",
       price: bundle.price,
