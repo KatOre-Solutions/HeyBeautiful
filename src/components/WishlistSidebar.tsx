@@ -4,11 +4,20 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Heart } from "lucide-react";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCart } from "@/context/CartContext";
 import SideDrawer from "@/components/SideDrawer";
 import { ease } from "@/lib/motion";
 
 export default function WishlistSidebar() {
   const { items, wishlistOpen, setWishlistOpen, toggleItem } = useWishlist();
+  const { addItem, setCartOpen } = useCart();
+
+  // Move every saved item into the bag, then hand off to the cart.
+  const handleShopAll = () => {
+    items.forEach((item) => addItem(item));
+    setWishlistOpen(false);
+    setCartOpen(true);
+  };
 
   return (
     <SideDrawer
@@ -23,6 +32,7 @@ export default function WishlistSidebar() {
           <motion.button
             whileHover={{ scale: 1.015, opacity: 0.92 }}
             whileTap={{ scale: 0.98 }}
+            onClick={handleShopAll}
             className="w-full py-4 rounded-full text-white font-semibold text-[11px] tracking-[0.13em] uppercase"
             style={{
               background: "#c9977a",

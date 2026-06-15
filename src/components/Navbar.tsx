@@ -317,6 +317,58 @@ export default function Navbar() {
                 <div className="mt-auto">
                   <div className="h-px w-full mb-6" style={{ background: "rgba(255,255,255,0.08)" }} />
 
+                  {/* Wishlist + Bag triggers */}
+                  {[
+                    {
+                      Icon: Heart,
+                      label: "Wishlist",
+                      badge: wishlistItems.length,
+                      onClick: () => {
+                        setMobileOpen(false);
+                        setWishlistOpen(true);
+                      },
+                    },
+                    {
+                      Icon: ShoppingBag,
+                      label: "Bag",
+                      badge: itemCount,
+                      onClick: () => {
+                        setMobileOpen(false);
+                        setCartOpen(true);
+                      },
+                    },
+                  ].map(({ Icon, label, badge, onClick }) => (
+                    <button
+                      key={label}
+                      onClick={onClick}
+                      className="flex items-center gap-3 mb-5 w-full text-left text-white/75 hover:text-[#e8c4ad] transition-colors duration-300"
+                    >
+                      <span
+                        className="relative w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background: "rgba(255,255,255,0.08)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                        }}
+                      >
+                        <Icon size={16} />
+                        {badge > 0 && (
+                          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#c9977a] text-white text-[9px] flex items-center justify-center font-bold">
+                            {badge}
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-cormorant)",
+                          fontSize: "1.35rem",
+                          fontWeight: 400,
+                        }}
+                      >
+                        {label}
+                      </span>
+                    </button>
+                  ))}
+
                   {/* Auth link */}
                   <Link
                     href={user ? "/account" : "/login"}
