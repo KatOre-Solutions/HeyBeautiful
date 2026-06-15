@@ -25,6 +25,7 @@ interface WishlistContextType {
   setWishlistOpen: (open: boolean) => void;
   toggleItem: (product: WishlistProduct) => void;
   isWishlisted: (id: string) => boolean;
+  clearWishlist: () => void;
 }
 
 const WishlistContext = createContext<WishlistContextType | null>(null);
@@ -72,9 +73,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
   const isWishlisted = (id: string) => items.some((p) => p.id === id);
 
+  const clearWishlist = () => setItems([]);
+
   return (
     <WishlistContext.Provider
-      value={{ items, wishlistOpen, setWishlistOpen, toggleItem, isWishlisted }}
+      value={{ items, wishlistOpen, setWishlistOpen, toggleItem, isWishlisted, clearWishlist }}
     >
       {children}
     </WishlistContext.Provider>
@@ -90,6 +93,7 @@ export function useWishlist() {
       setWishlistOpen: (_: boolean) => {},
       toggleItem: (_: WishlistProduct) => {},
       isWishlisted: (_: string) => false,
+      clearWishlist: () => {},
     };
   }
   return ctx;
