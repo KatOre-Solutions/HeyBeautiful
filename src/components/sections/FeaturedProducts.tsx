@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { motion, useInView, AnimatePresence } from "framer-motion";
@@ -8,75 +7,17 @@ import { fadeUp, staggerContainer, staggerContainerSlow } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
 
-const products = [
-  {
-    id: 1,
-    name: "Glow Collagen Blend",
-    category: "Beauty Support",
-    price: 54,
-    originalPrice: 68,
-    rating: 4.9,
-    reviews: 247,
-    image: "/images/item-1.jpeg",
-    badge: "Best Seller",
-    badgeColor: "#c9977a",
-    tags: ["Skin", "Hair", "Nails"],
-  },
-  {
-    id: 2,
-    name: "Plant Protein Luxe",
-    category: "Performance",
-    price: 62,
-    originalPrice: null,
-    rating: 4.8,
-    reviews: 189,
-    image: "/images/item-2.jpeg",
-    badge: "New",
-    badgeColor: "#4361ee",
-    tags: ["Protein", "Recovery", "Clean"],
-  },
-  {
-    id: 3,
-    name: "Morning Glow Ritual",
-    category: "Wellness",
-    price: 48,
-    originalPrice: 58,
-    rating: 5.0,
-    reviews: 312,
-    image: "/images/item-3.jpeg",
-    badge: "Fan Fave",
-    badgeColor: "#8b5e52",
-    tags: ["Energy", "Mood", "Focus"],
-  },
-  {
-    id: 4,
-    name: "Recovery Rose Blend",
-    category: "Recovery",
-    price: 44,
-    originalPrice: null,
-    rating: 4.7,
-    reviews: 156,
-    image: "/images/item-4.jpeg",
-    badge: null,
-    badgeColor: null,
-    tags: ["Sleep", "Repair", "Calm"],
-  },
-  {
-    id: 5,
-    name: "Strength & Radiance",
-    category: "Performance",
-    price: 58,
-    originalPrice: 72,
-    rating: 4.9,
-    reviews: 203,
-    image: "/images/item-5.jpeg",
-    badge: "Top Rated",
-    badgeColor: "#c9977a",
-    tags: ["Strength", "Glow", "Vitality"],
-  },
-];
+type ShopifyProduct = {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice: number | null;
+  image: string;
+  tags: string[];
+  handle: string;
+};
 
-type WishlistProduct = { id: number; name: string; category: string; price: number; image: string };
+type WishlistProduct = { id: number; name: string; price: number; image: string };
 
 function WishlistHeart({ product }: { product: WishlistProduct }) {
   const { toggleItem, isWishlisted } = useWishlist();
@@ -148,7 +89,8 @@ function WishlistHeart({ product }: { product: WishlistProduct }) {
   );
 }
 
-function ProductCard({ product, index }: { product: (typeof products)[0]; index: number }) {
+// Each individual product card
+function ProductCard({ product}: { product: ShopifyProduct }) {
   const [hovered, setHovered] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
 
@@ -180,23 +122,13 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           />
         </motion.div>
-
-        {/* Top row — badge + wishlist */}
-        <div className="absolute top-4 left-4 right-4 flex items-start justify-between z-20">
-          {product.badge ? (
-            <span
-              className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase"
-              style={{ background: product.badgeColor ?? "#c9977a" }}
-            >
-              {product.badge}
-            </span>
-          ) : (
-            <div />
-          )}
-          <WishlistHeart product={product} />
+        {/* Wishlist button */}
+        <div className="absolute top-4 left-4 right-4 flex items-start justify-end z-20">
+           <WishlistHeart product={product} />
         </div>
 
-        {/* Quick-view overlay */}
+
+        {/* Add to bag overlay on hover */}
         <AnimatePresence>
           {hovered && (
             <motion.div
@@ -230,9 +162,9 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
           )}
         </AnimatePresence>
 
-        {/* Tags row */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 flex gap-1.5">
-          {product.tags.map((tag) => (
+        {/* Tags from Shopify */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 flex gap-1.5 flex-wrap">
+          {product.tags.slice(0,3).map((tag) => (
             <span
               key={tag}
               className="px-2 py-0.5 rounded-full text-white/80 text-[8px] tracking-[0.1em] uppercase"
@@ -249,7 +181,7 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
 
       {/* Card body */}
       <div className="p-5">
-        <p className="label-caps text-[#c9977a]/80 mb-1.5">{product.category}</p>
+
         <h3
           className="heading-serif text-[#1e1814] mb-2 text-lg leading-tight"
           style={{ fontFamily: "var(--font-cormorant)" }}
@@ -257,24 +189,14 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
           {product.name}
         </h3>
 
-        {/* Rating */}
+         {/* Static 5-star display */}
         <div className="flex items-center gap-1.5 mb-4">
           <div className="flex">
             {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                size={10}
-                className={cn(
-                  i < Math.floor(product.rating)
-                    ? "fill-[#c9977a] text-[#c9977a]"
-                    : "text-[#c9977a]/30"
-                )}
-              />
+              <Star key={i} size={10} className="fill-[#c9977a] text-[#c9977a]" />
             ))}
           </div>
-          <span className="text-[#1e1814]/50 text-[10px]">
-            {product.rating} ({product.reviews})
-          </span>
+ 
         </div>
 
         {/* Price row */}
@@ -307,8 +229,8 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
     </motion.div>
   );
 }
-
-export default function FeaturedProducts() {
+// Main section — receives products fetched from Shopify in page.tsx
+export default function FeaturedProducts({ products }: { products: ShopifyProduct[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
@@ -355,8 +277,8 @@ export default function FeaturedProducts() {
           animate={isInView ? "visible" : "hidden"}
           className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6"
         >
-          {products.map((product, i) => (
-            <ProductCard key={product.id} product={product} index={i} />
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
           ))}
         </motion.div>
 
