@@ -165,6 +165,7 @@ export default function Newsletter() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Your email address"
                       required
+                      suppressHydrationWarning
                       className="flex-1 bg-transparent px-6 py-4 text-white placeholder-white/40 text-sm focus:outline-none"
                       style={{ fontFamily: "var(--font-manrope)" }}
                     />
