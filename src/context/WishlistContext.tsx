@@ -5,7 +5,7 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 export interface WishlistProduct {
   id: number;
   name: string;
-  category: string;
+  // category: string;
   price: number;
   image: string;
 }
