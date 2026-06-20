@@ -51,7 +51,7 @@ export function useWishlist() {
       wishlistOpen: false,
       setWishlistOpen: (_: boolean) => {},
       toggleItem: (_: WishlistProduct) => {},
-      isWishlisted: (_: number) => false,
+      isWishlisted: (_: string) => false,
     };
   }
   return ctx;

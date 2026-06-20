@@ -190,12 +190,7 @@ export default function WishlistSidebar() {
 
                         {/* Product info */}
                         <div className="flex-1 min-w-0">
-                          <p
-                            className="label-caps mb-1"
-                            style={{ color: "rgba(201,151,122,0.8)", fontSize: "8px" }}
-                          >
-                            {item.category}
-                          </p>
+
                           <p
                             className="leading-tight mb-2 truncate"
                             style={{
