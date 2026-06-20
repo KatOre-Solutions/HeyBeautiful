@@ -35,6 +35,8 @@ const PRODUCTS_QUERY = `{
 }`;
 
 export async function getFeaturedProducts() {
+  if (!STORE_DOMAIN) return [];
+
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
