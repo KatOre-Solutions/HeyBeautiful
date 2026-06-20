@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { motion, useInView, AnimatePresence } from "framer-motion";
@@ -11,13 +11,23 @@ type ShopifyProduct = {
   id: string;
   name: string;
   price: number;
+  currencyCode: string;
   originalPrice: number | null;
   image: string;
   tags: string[];
   handle: string;
 };
 
-type WishlistProduct = { id: number; name: string; price: number; image: string };
+function formatPrice(amount: number, currencyCode: string) {
+  return new Intl.NumberFormat('en-ZA', {
+    style: 'currency',
+    currency: currencyCode,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+type WishlistProduct = { id:string; name: string; price: number; image: string };
 
 function WishlistHeart({ product }: { product: WishlistProduct }) {
   const { toggleItem, isWishlisted } = useWishlist();
@@ -206,11 +216,11 @@ function ProductCard({ product}: { product: ShopifyProduct }) {
               className="heading-serif text-xl text-[#1e1814]"
               style={{ fontFamily: "var(--font-cormorant)" }}
             >
-              ${product.price}
+              {formatPrice(product.price, product.currencyCode)}
             </span>
-            {product.originalPrice && (
+            {product.originalPrice !== null && product.originalPrice > 0 && (
               <span className="text-[#1e1814]/35 text-sm line-through">
-                ${product.originalPrice}
+                {formatPrice(product.originalPrice, product.currencyCode)}
               </span>
             )}
           </div>
