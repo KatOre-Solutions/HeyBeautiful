@@ -1,74 +1,74 @@
-import {shopify} from './shopify';
+﻿const STORE_DOMAIN = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN!;
+const API_URL = `${STORE_DOMAIN}/api/2026-04/graphql.json`;
 
-const PRODUCTS_QUERY = `#graphql
-    query FeaturedProducts {
-     # Fetch the first 5 products, sorted by best selling
-    products (first: 5, sortKey: BEST_SELLING) {
-      edges{
-        node {
-            id              # Unique product ID from Shopify
-          title             # Product name e.g. "Glow Collagen Blend"
-          handle            # URL-friendly name e.g. "glow-collagen-blend"
-          tags              # Tags added in Shopify admin e.g. ["Skin", "Hair"]
-              # The current selling price
- priceRange {
-            minVariantPrice {
-              amount        # Price as a string e.g. "54.00"
-              currencyCode  # e.g. "USD" or "ZAR"
-            }
+// Simple query using shorthand syntax for tokenless access
+const PRODUCTS_QUERY = `{
+  products(first: 5, sortKey: BEST_SELLING) {
+    edges {
+      node {
+        id
+        title
+        handle
+        tags
+        priceRange {
+          minVariantPrice {
+            amount
+            currencyCode
           }
-        # The original price (only exists if the product is on sale)
-          compareAtPriceRange {
-            minVariantPrice {
-              amount
-            }
+        }
+        compareAtPriceRange {
+          minVariantPrice {
+            amount
           }
-
-          # Fetch just the first image of the product
-          images(first: 1) {
-            edges {
-              node {
-                url         # Direct image URL from Shopify CDN
-                altText     # Accessibility description of the image
-              }
+        }
+        images(first: 1) {
+          edges {
+            node {
+              url
+              altText
             }
           }
         }
       }
     }
   }
-`;
+}`;
 
-// This function is what your app will call to get products.
-// It sends the query to Shopify and returns a clean, simple array.
 export async function getFeaturedProducts() {
-  // Send the query to Shopify and wait for the response
-  const { data, errors } = await shopify.request(PRODUCTS_QUERY);
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({ query: PRODUCTS_QUERY }),
+  });
 
-    // If Shopify returns any errors, log them and return an empty array
-  // so the page doesn't crash — it just shows no products
-  if (errors) {
-    console.error('Shopify query errors:', errors);
+  // Log full error response so we can see what Shopify says
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Shopify fetch error:', response.status, errorText);
     return [];
   }
-  // Transform the raw Shopify response into a simple, clean format
-  // that your FeaturedProducts component can easily use
-  return data.products.edges.map(({ node }: any) => ({
-    id: node.id,
-    name: node.title,
-    handle: node.handle,
-    tags: node.tags,
 
-    // Convert price from string "54.00" to number 54
+  const json = await response.json();
+
+  if (json.errors) {
+    console.error('Shopify query errors:', json.errors);
+    return [];
+  }
+
+  return json.data.products.edges.map(({ node }: any) => {
+    const compareAt = parseFloat(node.compareAtPriceRange?.minVariantPrice?.amount ?? '0');
+    return {
+      id: node.id,
+      name: node.title,
+      handle: node.handle,
+      tags: node.tags,
       price: parseFloat(node.priceRange.minVariantPrice.amount),
-
-    // Only include originalPrice if the product is on sale, otherwise null
-    originalPrice: node.compareAtPriceRange?.minVariantPrice?.amount
-      ? parseFloat(node.compareAtPriceRange.minVariantPrice.amount)
-      : null,
-
-    // Get the first image URL, or empty string if no image exists
-    image: node.images.edges[0]?.node.url ?? '',
-
- }));
+      currencyCode: node.priceRange.minVariantPrice.currencyCode,
+      originalPrice: compareAt > 0 ? compareAt : null,
+      image: node.images.edges[0]?.node.url ?? '',
+    };
+  });
 }
