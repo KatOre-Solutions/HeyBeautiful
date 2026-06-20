@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
 export interface WishlistProduct {
-  id: number;
+  id: string;
   name: string;
   // category: string;
   price: number;
@@ -15,7 +15,7 @@ interface WishlistContextType {
   wishlistOpen: boolean;
   setWishlistOpen: (open: boolean) => void;
   toggleItem: (product: WishlistProduct) => void;
-  isWishlisted: (id: number) => boolean;
+  isWishlisted: (id: string) => boolean;
 }
 
 const WishlistContext = createContext<WishlistContextType | null>(null);
@@ -32,7 +32,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const isWishlisted = (id: number) => items.some((p) => p.id === id);
+  const isWishlisted = (id: string) => items.some((p) => p.id === id);
 
   return (
     <WishlistContext.Provider
