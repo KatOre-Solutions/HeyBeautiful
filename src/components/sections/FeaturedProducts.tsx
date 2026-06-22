@@ -1,35 +1,15 @@
-﻿"use client";
+"use client";
+
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { motion, useInView, AnimatePresence } from "framer-motion";
-import { Heart, ShoppingBag, Star } from "lucide-react";
+import { Heart, ShoppingBag } from "lucide-react";
 import { fadeUp, staggerContainer, staggerContainerSlow } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
+import type { ShopifyProduct } from "@/lib/shopify";
 
-type ShopifyProduct = {
-  id: string;
-  name: string;
-  price: number;
-  currencyCode: string;
-  originalPrice: number | null;
-  image: string;
-  tags: string[];
-  handle: string;
-};
-
-function formatPrice(amount: number, currencyCode: string) {
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: currencyCode,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-type WishlistProduct = { id:string; name: string; price: number; image: string };
-
-function WishlistHeart({ product }: { product: WishlistProduct }) {
+function WishlistHeart({ product }: { product: ShopifyProduct }) {
   const { toggleItem, isWishlisted } = useWishlist();
   const wished = isWishlisted(product.id);
   const [burst, setBurst] = useState(false);
@@ -41,7 +21,13 @@ function WishlistHeart({ product }: { product: WishlistProduct }) {
       setBurst(true);
       setTimeout(() => setBurst(false), 600);
     }
-    toggleItem(product);
+    toggleItem({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      price: product.price,
+      image: product.image,
+    });
   };
 
   return (
@@ -68,7 +54,6 @@ function WishlistHeart({ product }: { product: WishlistProduct }) {
         />
       </motion.div>
 
-      {/* Burst particles */}
       <AnimatePresence>
         {burst && (
           <motion.div
@@ -99,10 +84,16 @@ function WishlistHeart({ product }: { product: WishlistProduct }) {
   );
 }
 
-// Each individual product card
-function ProductCard({ product}: { product: ShopifyProduct }) {
+function ProductCard({ product }: { product: ShopifyProduct }) {
   const [hovered, setHovered] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
+
+  const formatter = new Intl.NumberFormat("en-ZA", {
+    style: "currency",
+    currency: product.currencyCode || "ZAR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -132,13 +123,20 @@ function ProductCard({ product}: { product: ShopifyProduct }) {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           />
         </motion.div>
-        {/* Wishlist button */}
-        <div className="absolute top-4 left-4 right-4 flex items-start justify-end z-20">
-           <WishlistHeart product={product} />
+
+        {/* Top row — sale badge + wishlist */}
+        <div className="absolute top-4 left-4 right-4 flex items-start justify-between z-20">
+          {product.originalPrice != null ? (
+            <span className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase" style={{ background: "#c9977a" }}>
+              Sale
+            </span>
+          ) : (
+            <div />
+          )}
+          <WishlistHeart product={product} />
         </div>
 
-
-        {/* Add to bag overlay on hover */}
+        {/* Quick-add overlay */}
         <AnimatePresence>
           {hovered && (
             <motion.div
@@ -147,10 +145,7 @@ function ProductCard({ product}: { product: ShopifyProduct }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
               className="absolute inset-0 flex flex-col items-center justify-end pb-6 z-10 pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(to top, rgba(30,24,20,0.5) 0%, transparent 50%)",
-              }}
+              style={{ background: "linear-gradient(to top, rgba(30,24,20,0.5) 0%, transparent 50%)" }}
             >
               <motion.button
                 initial={{ y: 16, opacity: 0 }}
@@ -172,42 +167,31 @@ function ProductCard({ product}: { product: ShopifyProduct }) {
           )}
         </AnimatePresence>
 
-        {/* Tags from Shopify */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 flex gap-1.5 flex-wrap">
-          {product.tags.slice(0,3).map((tag) => (
-            <span
-              key={tag}
-              className="px-2 py-0.5 rounded-full text-white/80 text-[8px] tracking-[0.1em] uppercase"
-              style={{
-                background: "rgba(30,24,20,0.35)",
-                backdropFilter: "blur(4px)",
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+        {/* Tags row */}
+        {product.tags.length > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 flex gap-1.5">
+            {product.tags.map((tag) => (
+              <span
+                key={tag}
+                className="px-2 py-0.5 rounded-full text-white/80 text-[8px] tracking-[0.1em] uppercase"
+                style={{ background: "rgba(30,24,20,0.35)", backdropFilter: "blur(4px)" }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Card body */}
       <div className="p-5">
-
+        <p className="label-caps text-[#c9977a]/80 mb-1.5">{product.category}</p>
         <h3
-          className="heading-serif text-[#1e1814] mb-2 text-lg leading-tight"
+          className="heading-serif text-[#1e1814] mb-4 text-lg leading-tight"
           style={{ fontFamily: "var(--font-cormorant)" }}
         >
           {product.name}
         </h3>
-
-         {/* Static 5-star display */}
-        <div className="flex items-center gap-1.5 mb-4">
-          <div className="flex">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} size={10} className="fill-[#c9977a] text-[#c9977a]" />
-            ))}
-          </div>
- 
-        </div>
 
         {/* Price row */}
         <div className="flex items-center justify-between">
@@ -216,21 +200,18 @@ function ProductCard({ product}: { product: ShopifyProduct }) {
               className="heading-serif text-xl text-[#1e1814]"
               style={{ fontFamily: "var(--font-cormorant)" }}
             >
-              {formatPrice(product.price, product.currencyCode)}
+              {formatter.format(product.price)}
             </span>
-            {product.originalPrice !== null && product.originalPrice > 0 && (
+            {product.originalPrice != null && (
               <span className="text-[#1e1814]/35 text-sm line-through">
-                {formatPrice(product.originalPrice, product.currencyCode)}
+                {formatter.format(product.originalPrice)}
               </span>
             )}
           </div>
           <button
             onClick={handleAddToCart}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
-            style={{
-              background: "rgba(201,151,122,0.1)",
-              border: "1px solid rgba(201,151,122,0.3)",
-            }}
+            style={{ background: "rgba(201,151,122,0.1)", border: "1px solid rgba(201,151,122,0.3)" }}
           >
             <ShoppingBag size={14} className="text-[#c9977a]" />
           </button>
@@ -239,7 +220,7 @@ function ProductCard({ product}: { product: ShopifyProduct }) {
     </motion.div>
   );
 }
-// Main section — receives products fetched from Shopify in page.tsx
+
 export default function FeaturedProducts({ products }: { products: ShopifyProduct[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
@@ -263,10 +244,7 @@ export default function FeaturedProducts({ products }: { products: ShopifyProduc
           <motion.h2
             variants={fadeUp}
             className="heading-display text-[#1e1814]"
-            style={{
-              fontFamily: "var(--font-cormorant)",
-              fontSize: "clamp(2.5rem, 5vw, 4.5rem)",
-            }}
+            style={{ fontFamily: "var(--font-cormorant)", fontSize: "clamp(2.5rem, 5vw, 4.5rem)" }}
           >
             Your Ritual, Elevated
           </motion.h2>
