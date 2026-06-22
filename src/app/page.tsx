@@ -9,15 +9,18 @@ import Lifestyle from "@/components/sections/Lifestyle";
 import Reviews from "@/components/sections/Reviews";
 import Newsletter from "@/components/sections/Newsletter";
 import Footer from "@/components/Footer";
+import { getFeaturedProducts } from "@/lib/shopify";
 
-export default function Home() {
+export default async function Home() {
+  const products = await getFeaturedProducts();
+
   return (
     <ClientWrapper>
       <main>
         <Navbar />
         <Hero />
         <BrandStory />
-        <FeaturedProducts />
+        <FeaturedProducts products={products} />
         <Bundles />
         <Benefits />
         <Lifestyle />
