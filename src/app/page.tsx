@@ -9,7 +9,7 @@ import Lifestyle from "@/components/sections/Lifestyle";
 import Reviews from "@/components/sections/Reviews";
 import Newsletter from "@/components/sections/Newsletter";
 import Footer from "@/components/Footer";
-import { getFeaturedProducts } from "@/lib/shopify-queries";
+import { getFeaturedProducts } from "@/lib/shopify";
 
 export default async function Home() {
   const products = await getFeaturedProducts(); 
