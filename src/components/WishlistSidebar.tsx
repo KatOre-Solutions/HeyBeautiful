@@ -2,13 +2,33 @@
 
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Heart } from "lucide-react";
-import { useWishlist } from "@/context/WishlistContext";
+import { X, Heart, ShoppingBag } from "lucide-react";
+import { useWishlist, type WishlistProduct } from "@/context/WishlistContext";
+import { useCart } from "@/context/CartContext";
 import SideDrawer from "@/components/SideDrawer";
 import { ease } from "@/lib/motion";
 
 export default function WishlistSidebar() {
-  const { items, wishlistOpen, setWishlistOpen, toggleItem } = useWishlist();
+  const { items, wishlistOpen, setWishlistOpen, toggleItem, clearWishlist } =
+    useWishlist();
+  const { addItem, setCartOpen } = useCart();
+
+  // Move every saved item into the bag (and out of the wishlist), then hand
+  // off to the cart.
+  const handleShopAll = () => {
+    items.forEach((item) => addItem(item));
+    clearWishlist();
+    setWishlistOpen(false);
+    setCartOpen(true);
+  };
+
+  // Move a single saved item into the bag and remove it from the wishlist.
+  // No auto-open of the cart — the "Added to bag" toast confirms it (matches
+  // the product-card add behaviour).
+  const handleMoveToBag = (item: WishlistProduct) => {
+    addItem(item);
+    toggleItem(item);
+  };
 
   return (
     <SideDrawer
@@ -23,6 +43,7 @@ export default function WishlistSidebar() {
           <motion.button
             whileHover={{ scale: 1.015, opacity: 0.92 }}
             whileTap={{ scale: 0.98 }}
+            onClick={handleShopAll}
             className="w-full py-4 rounded-full text-white font-semibold text-[11px] tracking-[0.13em] uppercase"
             style={{
               background: "#c9977a",
@@ -142,20 +163,36 @@ export default function WishlistSidebar() {
                   </p>
                 </div>
 
-                {/* Remove button */}
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.88 }}
-                  onClick={() => toggleItem(item)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full flex-shrink-0"
-                  style={{
-                    background: "rgba(239,68,68,0.07)",
-                    border: "1px solid rgba(239,68,68,0.18)",
-                  }}
-                  aria-label={`Remove ${item.name} from wishlist`}
-                >
-                  <X size={12} style={{ color: "rgba(239,68,68,0.7)" }} />
-                </motion.button>
+                {/* Actions — move to bag / remove */}
+                <div className="flex flex-col gap-2 flex-shrink-0">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.88 }}
+                    onClick={() => handleMoveToBag(item)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full"
+                    style={{
+                      background: "rgba(201,151,122,0.1)",
+                      border: "1px solid rgba(201,151,122,0.25)",
+                    }}
+                    aria-label={`Move ${item.name} to bag`}
+                  >
+                    <ShoppingBag size={12} className="text-rose-gold" />
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.88 }}
+                    onClick={() => toggleItem(item)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full"
+                    style={{
+                      background: "rgba(239,68,68,0.07)",
+                      border: "1px solid rgba(239,68,68,0.18)",
+                    }}
+                    aria-label={`Remove ${item.name} from wishlist`}
+                  >
+                    <X size={12} style={{ color: "rgba(239,68,68,0.7)" }} />
+                  </motion.button>
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>
