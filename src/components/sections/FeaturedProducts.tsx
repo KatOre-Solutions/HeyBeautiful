@@ -3,82 +3,13 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { motion, useInView, AnimatePresence } from "framer-motion";
-import { Heart, ShoppingBag, Star } from "lucide-react";
+import { Heart, ShoppingBag } from "lucide-react";
 import { fadeUp, staggerContainer, staggerContainerSlow } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
+import type { ShopifyProduct } from "@/lib/shopify";
 
-const products = [
-  {
-    id: 1,
-    name: "Glow Collagen Blend",
-    category: "Beauty Support",
-    price: 54,
-    originalPrice: 68,
-    rating: 4.9,
-    reviews: 247,
-    image: "/images/item-1.jpeg",
-    badge: "Best Seller",
-    badgeColor: "#c9977a",
-    tags: ["Skin", "Hair", "Nails"],
-  },
-  {
-    id: 2,
-    name: "Plant Protein Luxe",
-    category: "Performance",
-    price: 62,
-    originalPrice: null,
-    rating: 4.8,
-    reviews: 189,
-    image: "/images/item-2.jpeg",
-    badge: "New",
-    badgeColor: "#4361ee",
-    tags: ["Protein", "Recovery", "Clean"],
-  },
-  {
-    id: 3,
-    name: "Morning Glow Ritual",
-    category: "Wellness",
-    price: 48,
-    originalPrice: 58,
-    rating: 5.0,
-    reviews: 312,
-    image: "/images/item-3.jpeg",
-    badge: "Fan Fave",
-    badgeColor: "#8b5e52",
-    tags: ["Energy", "Mood", "Focus"],
-  },
-  {
-    id: 4,
-    name: "Recovery Rose Blend",
-    category: "Recovery",
-    price: 44,
-    originalPrice: null,
-    rating: 4.7,
-    reviews: 156,
-    image: "/images/item-4.jpeg",
-    badge: null,
-    badgeColor: null,
-    tags: ["Sleep", "Repair", "Calm"],
-  },
-  {
-    id: 5,
-    name: "Strength & Radiance",
-    category: "Performance",
-    price: 58,
-    originalPrice: 72,
-    rating: 4.9,
-    reviews: 203,
-    image: "/images/item-5.jpeg",
-    badge: "Top Rated",
-    badgeColor: "#c9977a",
-    tags: ["Strength", "Glow", "Vitality"],
-  },
-];
-
-type WishlistProduct = { id: number; name: string; category: string; price: number; image: string };
-
-function WishlistHeart({ product }: { product: WishlistProduct }) {
+function WishlistHeart({ product }: { product: ShopifyProduct }) {
   const { toggleItem, isWishlisted } = useWishlist();
   const wished = isWishlisted(product.id);
   const [burst, setBurst] = useState(false);
@@ -90,7 +21,13 @@ function WishlistHeart({ product }: { product: WishlistProduct }) {
       setBurst(true);
       setTimeout(() => setBurst(false), 600);
     }
-    toggleItem(product);
+    toggleItem({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      price: product.price,
+      image: product.image,
+    });
   };
 
   return (
@@ -117,7 +54,6 @@ function WishlistHeart({ product }: { product: WishlistProduct }) {
         />
       </motion.div>
 
-      {/* Burst particles */}
       <AnimatePresence>
         {burst && (
           <motion.div
@@ -148,9 +84,16 @@ function WishlistHeart({ product }: { product: WishlistProduct }) {
   );
 }
 
-function ProductCard({ product, index }: { product: (typeof products)[0]; index: number }) {
+function ProductCard({ product }: { product: ShopifyProduct }) {
   const [hovered, setHovered] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
+
+  const formatter = new Intl.NumberFormat("en-ZA", {
+    style: "currency",
+    currency: product.currencyCode || "ZAR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -181,14 +124,11 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
           />
         </motion.div>
 
-        {/* Top row — badge + wishlist */}
+        {/* Top row — sale badge + wishlist */}
         <div className="absolute top-4 left-4 right-4 flex items-start justify-between z-20">
-          {product.badge ? (
-            <span
-              className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase"
-              style={{ background: product.badgeColor ?? "#c9977a" }}
-            >
-              {product.badge}
+          {product.originalPrice != null ? (
+            <span className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase" style={{ background: "#c9977a" }}>
+              Sale
             </span>
           ) : (
             <div />
@@ -196,7 +136,7 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
           <WishlistHeart product={product} />
         </div>
 
-        {/* Quick-view overlay */}
+        {/* Quick-add overlay */}
         <AnimatePresence>
           {hovered && (
             <motion.div
@@ -205,10 +145,7 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
               className="absolute inset-0 flex flex-col items-center justify-end pb-6 z-10 pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(to top, rgba(30,24,20,0.5) 0%, transparent 50%)",
-              }}
+              style={{ background: "linear-gradient(to top, rgba(30,24,20,0.5) 0%, transparent 50%)" }}
             >
               <motion.button
                 initial={{ y: 16, opacity: 0 }}
@@ -231,51 +168,30 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
         </AnimatePresence>
 
         {/* Tags row */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 flex gap-1.5">
-          {product.tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-2 py-0.5 rounded-full text-white/80 text-[8px] tracking-[0.1em] uppercase"
-              style={{
-                background: "rgba(30,24,20,0.35)",
-                backdropFilter: "blur(4px)",
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+        {product.tags.length > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 flex gap-1.5">
+            {product.tags.map((tag) => (
+              <span
+                key={tag}
+                className="px-2 py-0.5 rounded-full text-white/80 text-[8px] tracking-[0.1em] uppercase"
+                style={{ background: "rgba(30,24,20,0.35)", backdropFilter: "blur(4px)" }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Card body */}
       <div className="p-5">
         <p className="label-caps text-[#c9977a]/80 mb-1.5">{product.category}</p>
         <h3
-          className="heading-serif text-[#1e1814] mb-2 text-lg leading-tight"
+          className="heading-serif text-[#1e1814] mb-4 text-lg leading-tight"
           style={{ fontFamily: "var(--font-cormorant)" }}
         >
           {product.name}
         </h3>
-
-        {/* Rating */}
-        <div className="flex items-center gap-1.5 mb-4">
-          <div className="flex">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                size={10}
-                className={cn(
-                  i < Math.floor(product.rating)
-                    ? "fill-[#c9977a] text-[#c9977a]"
-                    : "text-[#c9977a]/30"
-                )}
-              />
-            ))}
-          </div>
-          <span className="text-[#1e1814]/50 text-[10px]">
-            {product.rating} ({product.reviews})
-          </span>
-        </div>
 
         {/* Price row */}
         <div className="flex items-center justify-between">
@@ -284,21 +200,18 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
               className="heading-serif text-xl text-[#1e1814]"
               style={{ fontFamily: "var(--font-cormorant)" }}
             >
-              ${product.price}
+              {formatter.format(product.price)}
             </span>
-            {product.originalPrice && (
+            {product.originalPrice != null && (
               <span className="text-[#1e1814]/35 text-sm line-through">
-                ${product.originalPrice}
+                {formatter.format(product.originalPrice)}
               </span>
             )}
           </div>
           <button
             onClick={handleAddToCart}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
-            style={{
-              background: "rgba(201,151,122,0.1)",
-              border: "1px solid rgba(201,151,122,0.3)",
-            }}
+            style={{ background: "rgba(201,151,122,0.1)", border: "1px solid rgba(201,151,122,0.3)" }}
           >
             <ShoppingBag size={14} className="text-[#c9977a]" />
           </button>
@@ -308,7 +221,7 @@ function ProductCard({ product, index }: { product: (typeof products)[0]; index:
   );
 }
 
-export default function FeaturedProducts() {
+export default function FeaturedProducts({ products }: { products: ShopifyProduct[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
@@ -331,10 +244,7 @@ export default function FeaturedProducts() {
           <motion.h2
             variants={fadeUp}
             className="heading-display text-[#1e1814]"
-            style={{
-              fontFamily: "var(--font-cormorant)",
-              fontSize: "clamp(2.5rem, 5vw, 4.5rem)",
-            }}
+            style={{ fontFamily: "var(--font-cormorant)", fontSize: "clamp(2.5rem, 5vw, 4.5rem)" }}
           >
             Your Ritual, Elevated
           </motion.h2>
@@ -355,8 +265,8 @@ export default function FeaturedProducts() {
           animate={isInView ? "visible" : "hidden"}
           className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6"
         >
-          {products.map((product, i) => (
-            <ProductCard key={product.id} product={product} index={i} />
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
           ))}
         </motion.div>
 
