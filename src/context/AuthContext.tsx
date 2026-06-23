@@ -27,6 +27,7 @@ import {
 } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import { auth, googleProvider, appleProvider } from "@/lib/firebase";
+import { AUTH_COOKIE } from "@/lib/constants";
 
 interface AuthContextType {
   user: User | null;
@@ -39,8 +40,6 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   sendVerification: () => Promise<void>;
 }
-
-const AUTH_COOKIE = "hb-auth-token";
 
 /** Lightweight presence flag read by the proxy. Not a credential. */
 function setAuthCookie() {

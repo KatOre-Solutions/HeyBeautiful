@@ -5,18 +5,22 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, X, ArrowRight } from "lucide-react";
 import { useCart, type CartProduct } from "@/context/CartContext";
+import { ease } from "@/lib/motion";
+import { formatPrice } from "@/lib/format";
 
 const VISIBLE_MS = 3500;
 
 export default function CartNotification() {
   const { lastAdded, clearLastAdded, setCartOpen } = useCart();
   const [shown, setShown] = useState<CartProduct | null>(null);
+  const [shownKey, setShownKey] = useState<number | null>(null);
 
   // Surface each new `lastAdded` and auto-dismiss after a delay. The `key`
   // changes on every add (even for the same product) so the timer restarts.
   useEffect(() => {
     if (!lastAdded) return;
     setShown(lastAdded.product);
+    setShownKey(lastAdded.key);
     const timer = setTimeout(() => {
       setShown(null);
       clearLastAdded();
@@ -39,11 +43,11 @@ export default function CartNotification() {
       <AnimatePresence>
         {shown && (
           <motion.div
-            key={lastAdded?.key ?? "cart-notification"}
+            key={shownKey ?? "cart-notification"}
             initial={{ opacity: 0, y: 24, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, x: 20, scale: 0.95 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.45, ease: ease.cinematic }}
             className="pointer-events-auto w-[300px] rounded-2xl overflow-hidden"
             style={{
               background: "rgba(250, 247, 244, 0.92)",
@@ -64,7 +68,7 @@ export default function CartNotification() {
                     transition={{
                       delay: 0.1,
                       duration: 0.4,
-                      ease: [0.16, 1, 0.3, 1],
+                      ease: ease.cinematic,
                     }}
                     className="w-5 h-5 rounded-full flex items-center justify-center"
                     style={{ background: "#c9977a" }}
@@ -120,7 +124,7 @@ export default function CartNotification() {
                       color: "rgba(30,24,20,0.5)",
                     }}
                   >
-                    ${shown.price}
+                    {formatPrice(shown.price)}
                   </p>
                 </div>
               </div>

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-
-const AUTH_COOKIE = "hb-auth-token";
+import { AUTH_COOKIE } from "@/lib/constants";
 
 // Routes that require a session.
 const PROTECTED = ["/account", "/checkout"];

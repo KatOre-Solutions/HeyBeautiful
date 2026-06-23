@@ -53,12 +53,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        // Drop legacy entries with numeric ids (pre-#20): they no longer map to
-        // any product and could collide with the new namespaced keys.
-        const restored = (JSON.parse(raw) as CartProduct[]).filter(
-          (p) => typeof p.id === "string"
-        );
-        setItems(restored);
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          // Drop legacy entries with numeric ids (pre-#20): they no longer map to
+          // any product and could collide with the new namespaced keys.
+          const restored = parsed.filter((p) => typeof p.id === "string");
+          setItems(restored);
+        }
       }
     } catch {
       // Corrupt/unavailable storage — start with an empty cart.
@@ -76,8 +77,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, loaded]);
 
   const addItem = useCallback((product: Omit<CartProduct, "quantity">) => {
+    const existing = items.find((p) => p.id === product.id);
+    const newQty = (existing?.quantity ?? 0) + 1;
     setItems((prev) => {
-      const existing = prev.find((p) => p.id === product.id);
       if (existing) {
         return prev.map((p) =>
           p.id === product.id ? { ...p, quantity: p.quantity + 1 } : p
@@ -85,10 +87,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, { ...product, quantity: 1 }];
     });
-    // The notification only shows name/price/image, so quantity here is nominal.
     // `key` forces the toast to re-fire even when the same product is re-added.
-    setLastAdded({ product: { ...product, quantity: 1 }, key: Date.now() });
-  }, []);
+    setLastAdded({ product: { ...product, quantity: newQty }, key: Date.now() });
+  }, [items]);
 
   const removeItem = useCallback((id: string) => {
     setItems((prev) => prev.filter((p) => p.id !== id));

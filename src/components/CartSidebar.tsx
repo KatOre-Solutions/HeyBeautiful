@@ -8,6 +8,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import SideDrawer from "@/components/SideDrawer";
 import { ease } from "@/lib/motion";
+import { formatPrice } from "@/lib/format";
 
 export default function CartSidebar() {
   const {
@@ -58,7 +59,7 @@ export default function CartSidebar() {
                   fontWeight: 500,
                 }}
               >
-                ${totalPrice.toFixed(2)}
+                {formatPrice(totalPrice)}
               </span>
             </div>
 
@@ -193,7 +194,7 @@ export default function CartSidebar() {
                         fontWeight: 400,
                       }}
                     >
-                      ${(item.price * item.quantity).toFixed(0)}
+                      {formatPrice(item.price * item.quantity)}
                     </p>
 
                     <div

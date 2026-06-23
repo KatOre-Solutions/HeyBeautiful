@@ -9,6 +9,7 @@ import { Lock } from "lucide-react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import { formatPrice } from "@/lib/format";
 
 export default function CheckoutContent() {
   const router = useRouter();
@@ -132,7 +133,7 @@ export default function CheckoutContent() {
                       color: "#1e1814",
                     }}
                   >
-                    ${(item.price * item.quantity).toFixed(0)}
+                    {formatPrice(item.price * item.quantity)}
                   </span>
                 </motion.div>
               ))}
@@ -154,7 +155,7 @@ export default function CheckoutContent() {
                   fontWeight: 500,
                 }}
               >
-                ${totalPrice.toFixed(2)}
+                {formatPrice(totalPrice)}
               </span>
             </motion.div>
 
