@@ -11,6 +11,7 @@ import AuthForm from "@/components/auth/AuthForm";
 import FloatingInput from "@/components/auth/FloatingInput";
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons";
 import AuthErrorToast, { getAuthErrorMessage } from "@/components/auth/AuthErrorToast";
+import { REDIRECT_KEY } from "@/lib/constants";
 
 function resolveDestination(from: string | null): string {
   if (!from) return "/account";
@@ -29,7 +30,7 @@ function LoginForm() {
     if (fromParam) return resolveDestination(fromParam);
     const saved =
       typeof window !== "undefined"
-        ? sessionStorage.getItem("hb-redirect-destination")
+        ? sessionStorage.getItem(REDIRECT_KEY)
         : null;
     return saved ?? "/account";
   }, [params]);
@@ -46,9 +47,9 @@ function LoginForm() {
     if (authLoading || !user) return;
     const dest =
       (typeof window !== "undefined"
-        ? sessionStorage.getItem("hb-redirect-destination")
+        ? sessionStorage.getItem(REDIRECT_KEY)
         : null) ?? destination;
-    sessionStorage.removeItem("hb-redirect-destination");
+    sessionStorage.removeItem(REDIRECT_KEY);
     router.push(dest);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]);
@@ -69,14 +70,14 @@ function LoginForm() {
   };
 
   const handleSocial = async (fn: () => Promise<void>) => {
-    sessionStorage.setItem("hb-redirect-destination", destination);
+    sessionStorage.setItem(REDIRECT_KEY, destination);
     setError("");
     try {
       await fn();
-      sessionStorage.removeItem("hb-redirect-destination");
-      router.push(destination);
+      // useEffect([user, authLoading]) handles navigation and cleanup for both
+      // popup-success and post-redirect-return paths
     } catch (err) {
-      sessionStorage.removeItem("hb-redirect-destination");
+      sessionStorage.removeItem(REDIRECT_KEY);
       const msg = getAuthErrorMessage(err);
       if (msg) setError(msg);
     }

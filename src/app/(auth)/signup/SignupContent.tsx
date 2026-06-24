@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -11,6 +11,7 @@ import AuthForm from "@/components/auth/AuthForm";
 import FloatingInput from "@/components/auth/FloatingInput";
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons";
 import AuthErrorToast, { getAuthErrorMessage } from "@/components/auth/AuthErrorToast";
+import { REDIRECT_KEY } from "@/lib/constants";
 
 const STRENGTH_LABELS = ["Weak", "Fair", "Good", "Strong"];
 const STRENGTH_COLORS = ["#e57373", "#e0a04d", "#b8b04d", "#7ba05b"];
@@ -27,7 +28,7 @@ function getStrength(pw: string): number {
 
 export default function SignupContent() {
   const router = useRouter();
-  const { signUp, signInWithGoogle, signInWithApple } = useAuth();
+  const { signUp, signInWithGoogle, signInWithApple, user, loading: authLoading } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -40,6 +41,13 @@ export default function SignupContent() {
   const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirm?: string; agree?: string }>({});
 
   const strength = useMemo(() => getStrength(password), [password]);
+
+  // Navigate after popup-success or after signInWithRedirect round-trip returns.
+  useEffect(() => {
+    if (authLoading || !user) return;
+    sessionStorage.removeItem(REDIRECT_KEY);
+    router.push("/account");
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,11 +78,14 @@ export default function SignupContent() {
   };
 
   const handleSocial = async (fn: () => Promise<void>) => {
+    sessionStorage.setItem(REDIRECT_KEY, "/account");
     setError("");
     try {
       await fn();
-      router.push("/account");
+      // useEffect([user, authLoading]) handles navigation and cleanup for both
+      // popup-success and post-redirect-return paths
     } catch (err) {
+      sessionStorage.removeItem(REDIRECT_KEY);
       const msg = getAuthErrorMessage(err);
       if (msg) setError(msg);
     }

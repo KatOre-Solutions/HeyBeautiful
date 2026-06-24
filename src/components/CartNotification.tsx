@@ -12,15 +12,13 @@ const VISIBLE_MS = 3500;
 
 export default function CartNotification() {
   const { lastAdded, clearLastAdded, setCartOpen } = useCart();
-  const [shown, setShown] = useState<CartProduct | null>(null);
-  const [shownKey, setShownKey] = useState<number | null>(null);
+  const [shown, setShown] = useState<{ product: CartProduct; key: number } | null>(null);
 
   // Surface each new `lastAdded` and auto-dismiss after a delay. The `key`
   // changes on every add (even for the same product) so the timer restarts.
   useEffect(() => {
     if (!lastAdded) return;
-    setShown(lastAdded.product);
-    setShownKey(lastAdded.key);
+    setShown({ product: lastAdded.product, key: lastAdded.key });
     const timer = setTimeout(() => {
       setShown(null);
       clearLastAdded();
@@ -43,7 +41,7 @@ export default function CartNotification() {
       <AnimatePresence>
         {shown && (
           <motion.div
-            key={shownKey ?? "cart-notification"}
+            key={shown.key}
             initial={{ opacity: 0, y: 24, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, x: 20, scale: 0.95 }}
@@ -98,8 +96,8 @@ export default function CartNotification() {
                   style={{ background: "#f0ebe3" }}
                 >
                   <Image
-                    src={shown.image}
-                    alt={shown.name}
+                    src={shown.product.image}
+                    alt={shown.product.name}
                     fill
                     className="object-cover"
                     sizes="44px"
@@ -115,7 +113,7 @@ export default function CartNotification() {
                       fontWeight: 500,
                     }}
                   >
-                    {shown.name}
+                    {shown.product.name}
                   </p>
                   <p
                     style={{
@@ -124,7 +122,7 @@ export default function CartNotification() {
                       color: "rgba(30,24,20,0.5)",
                     }}
                   >
-                    {formatPrice(shown.price)}
+                    {formatPrice(shown.product.price)}
                   </p>
                 </div>
               </div>
@@ -150,7 +148,7 @@ export default function CartNotification() {
 
             {/* Auto-dismiss progress bar */}
             <motion.div
-              key={`${lastAdded?.key ?? "bar"}-progress`}
+              key={`${shown.key}-progress`}
               initial={{ scaleX: 1 }}
               animate={{ scaleX: 0 }}
               transition={{ duration: VISIBLE_MS / 1000, ease: "linear" }}
