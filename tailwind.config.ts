@@ -42,6 +42,8 @@ const config: Config = {
         },
         cream: "#faf7f4",
         parchment: "#f0ebe3",
+        // Primary text/ink brown — used site-wide for headings and body copy.
+        ink: "#1e1814",
         // Royal blue accent
         royal: {
           50: "#eff3ff",
