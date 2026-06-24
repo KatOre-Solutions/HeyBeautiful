@@ -4,10 +4,17 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { Heart, ShoppingBag } from "lucide-react";
-import { fadeUp, staggerContainer, staggerContainerSlow } from "@/lib/motion";
+import { fadeUp, staggerContainer, staggerContainerSlow, ease } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
 import type { ShopifyProduct } from "@/lib/shopify";
+
+const ZAR = new Intl.NumberFormat("en-ZA", {
+  style: "currency",
+  currency: "ZAR",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
 
 function WishlistHeart({ product }: { product: ShopifyProduct }) {
   const { toggleItem, isWishlisted } = useWishlist();
@@ -24,7 +31,6 @@ function WishlistHeart({ product }: { product: ShopifyProduct }) {
     toggleItem({
       id: product.id,
       name: product.name,
-      category: product.category,
       price: product.price,
       image: product.image,
     });
@@ -43,7 +49,7 @@ function WishlistHeart({ product }: { product: ShopifyProduct }) {
     >
       <motion.div
         animate={burst ? { scale: [1, 1.55, 0.88, 1.12, 1] } : wished ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.5, ease: ease.cinematic }}
       >
         <Heart
           size={15}
@@ -87,13 +93,6 @@ function WishlistHeart({ product }: { product: ShopifyProduct }) {
 function ProductCard({ product }: { product: ShopifyProduct }) {
   const [hovered, setHovered] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
-
-  const formatter = new Intl.NumberFormat("en-ZA", {
-    style: "currency",
-    currency: product.currencyCode || "ZAR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -151,7 +150,7 @@ function ProductCard({ product }: { product: ShopifyProduct }) {
                 initial={{ y: 16, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 8, opacity: 0 }}
-                transition={{ delay: 0.05, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: 0.05, duration: 0.4, ease: ease.cinematic }}
                 onClick={handleAddToCart}
                 className="flex items-center gap-2 px-6 py-3 rounded-full text-white text-[10px] font-semibold tracking-[0.1em] uppercase transition-all pointer-events-auto"
                 style={{
@@ -200,11 +199,11 @@ function ProductCard({ product }: { product: ShopifyProduct }) {
               className="heading-serif text-xl text-[#1e1814]"
               style={{ fontFamily: "var(--font-cormorant)" }}
             >
-              {formatter.format(product.price)}
+              {ZAR.format(product.price)}
             </span>
             {product.originalPrice != null && (
               <span className="text-[#1e1814]/35 text-sm line-through">
-                {formatter.format(product.originalPrice)}
+                {ZAR.format(product.originalPrice)}
               </span>
             )}
           </div>

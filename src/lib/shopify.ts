@@ -55,11 +55,10 @@ interface ShopifyProductNode {
 }
 
 export interface ShopifyProduct {
-  id: number;
+  id: string;
   name: string;
   category: string;
   price: number;
-  currencyCode: string;
   originalPrice: number | null;
   image: string;
   tags: string[];
@@ -86,11 +85,10 @@ export async function getFeaturedProducts(): Promise<ShopifyProduct[]> {
         );
 
         return {
-          id: numericId,
+          id: `product:${numericId}`,
           name: node.title,
           category: node.productType || "Product",
           price: parseFloat(node.priceRange.minVariantPrice.amount),
-          currencyCode: node.priceRange.minVariantPrice.currencyCode,
           originalPrice: compareAmount > 0 ? compareAmount : null,
           image: node.images.edges[0]?.node.url ?? "/images/item-1.jpeg",
           tags: node.tags.slice(0, 3),
