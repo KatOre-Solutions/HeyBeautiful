@@ -8,6 +8,13 @@ import { useCart } from "@/context/CartContext";
 import SideDrawer from "@/components/SideDrawer";
 import { ease } from "@/lib/motion";
 
+const ZAR = new Intl.NumberFormat("en-ZA", {
+  style: "currency",
+  currency: "ZAR",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
 export default function WishlistSidebar() {
   const { items, wishlistOpen, setWishlistOpen, toggleItem, clearWishlist } =
     useWishlist();
@@ -159,7 +166,7 @@ export default function WishlistSidebar() {
                       fontWeight: 400,
                     }}
                   >
-                    ${item.price}
+                    {ZAR.format(item.price)}
                   </p>
                 </div>
 

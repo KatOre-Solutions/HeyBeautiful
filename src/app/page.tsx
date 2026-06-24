@@ -1,3 +1,4 @@
+import { ClientWrapper } from "@/components/ClientWrapper";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/sections/Hero";
 import BrandStory from "@/components/sections/BrandStory";
@@ -8,20 +9,24 @@ import Lifestyle from "@/components/sections/Lifestyle";
 import Reviews from "@/components/sections/Reviews";
 import Newsletter from "@/components/sections/Newsletter";
 import Footer from "@/components/Footer";
+import { getFeaturedProducts } from "@/lib/shopify";
 
-export default function Home() {
+export default async function Home() {
+  const products = await getFeaturedProducts(); 
   return (
-    <main>
-      <Navbar />
-      <Hero />
-      <BrandStory />
-      <FeaturedProducts />
-      <Bundles />
-      <Benefits />
-      <Lifestyle />
-      <Reviews />
-      <Newsletter />
-      <Footer />
-    </main>
+    <ClientWrapper>
+      <main>
+        <Navbar />
+        <Hero />
+        <BrandStory />
+        <FeaturedProducts products={products} />
+        <Bundles />
+        <Benefits />
+        <Lifestyle />
+        <Reviews />
+        <Newsletter />
+        <Footer />
+      </main>
+    </ClientWrapper>
   );
 }
