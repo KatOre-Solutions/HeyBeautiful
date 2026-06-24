@@ -35,6 +35,37 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   `app/account`, `app/checkout`). Route protection lives in `src/proxy.ts` (Next 16 renamed the
   middleware convention to `proxy.ts`).
 
+## Code review
+
+Both contributors run code reviews with Claude Code CLI (included in a Claude paid subscription).
+
+**Setup (one-time)**
+```
+npm install -g @anthropic-ai/claude-code   # if not already installed
+```
+
+**Running a review**
+
+From inside the `website/` directory:
+
+```bash
+# Review the current branch diff vs master
+/code-review
+
+# Deep multi-agent review (more thorough, takes longer)
+/code-review ultra
+
+# Review a specific GitHub PR by number
+/code-review ultra <PR-number>
+```
+
+The reviewer posts its findings directly in the terminal. For PR reviews, pass `--comment` to
+post findings as inline GitHub PR comments instead:
+
+```bash
+/code-review ultra <PR-number> --comment
+```
+
 ## Commit / PR
 
 - Branch off the relevant base; never commit straight to `master`.
