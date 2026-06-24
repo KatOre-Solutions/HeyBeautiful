@@ -11,23 +11,28 @@ import {
   useMotionValue,
   useSpring,
 } from "framer-motion";
-import { ShoppingBag, Heart, Search, Menu, X } from "lucide-react";
+import { ShoppingBag, Heart, Search, Menu, X, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 const navLinks = [
-  { label: "Shop", href: "#products" },
-  { label: "Bundles", href: "#bundles" },
-  { label: "Our Story", href: "#story" },
-  { label: "Wellness", href: "#benefits" },
-  { label: "Community", href: "#community" },
+  { label: "Store", href: "/store" },
+  // Route-aware anchors so they scroll to the homepage section from any page.
+  { label: "Bundles", href: "/#bundles" },
+  { label: "Our Story", href: "/#story" },
+  { label: "Wellness", href: "/#benefits" },
+  { label: "Community", href: "/#community" },
 ];
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isHero, setIsHero] = useState(true);
-  const [cartCount] = useState(0);
   const { items: wishlistItems, setWishlistOpen } = useWishlist();
+  const { itemCount, setCartOpen } = useCart();
+  const { user } = useAuth();
+  const firstName = user?.displayName?.split(" ")[0] ?? "";
 
   const { scrollY } = useScroll();
 
@@ -132,8 +137,9 @@ export default function Navbar() {
               {/* Icon buttons */}
               {[
                 { Icon: Search, label: "Search", href: null, badge: null, onClick: null },
+                { Icon: User, label: user ? "My Account" : "Sign In", href: user ? "/account" : "/login", badge: null, onClick: null },
                 { Icon: Heart, label: "Wishlist", href: null, badge: wishlistItems.length, onClick: () => setWishlistOpen(true) },
-                { Icon: ShoppingBag, label: "Cart", href: "#", badge: cartCount, onClick: null },
+                { Icon: ShoppingBag, label: "Cart", href: null, badge: itemCount, onClick: () => setCartOpen(true) },
               ].map(({ Icon, label, href, badge, onClick }) => {
                 const btn = (
                   <motion.div
@@ -179,7 +185,7 @@ export default function Navbar() {
               })}
 
               {/* CTA pill — matches reference image style */}
-              <Link href="#products" className="hidden md:block ml-1">
+              <Link href="/store" className="hidden md:block ml-1">
                 <motion.div
                   animate={
                     isHero
@@ -309,9 +315,89 @@ export default function Navbar() {
                 </nav>
 
                 <div className="mt-auto">
-                  <div className="h-px w-full mb-8" style={{ background: "rgba(255,255,255,0.08)" }} />
+                  <div className="h-px w-full mb-6" style={{ background: "rgba(255,255,255,0.08)" }} />
+
+                  {/* Wishlist + Bag triggers */}
+                  {[
+                    {
+                      Icon: Heart,
+                      label: "Wishlist",
+                      badge: wishlistItems.length,
+                      onClick: () => {
+                        setMobileOpen(false);
+                        setWishlistOpen(true);
+                      },
+                    },
+                    {
+                      Icon: ShoppingBag,
+                      label: "Bag",
+                      badge: itemCount,
+                      onClick: () => {
+                        setMobileOpen(false);
+                        setCartOpen(true);
+                      },
+                    },
+                  ].map(({ Icon, label, badge, onClick }) => (
+                    <button
+                      key={label}
+                      onClick={onClick}
+                      className="flex items-center gap-3 mb-5 w-full text-left text-white/75 hover:text-[#e8c4ad] transition-colors duration-300"
+                    >
+                      <span
+                        className="relative w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background: "rgba(255,255,255,0.08)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                        }}
+                      >
+                        <Icon size={16} />
+                        {badge > 0 && (
+                          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#c9977a] text-white text-[9px] flex items-center justify-center font-bold">
+                            {badge}
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-cormorant)",
+                          fontSize: "1.35rem",
+                          fontWeight: 400,
+                        }}
+                      >
+                        {label}
+                      </span>
+                    </button>
+                  ))}
+
+                  {/* Auth link */}
                   <Link
-                    href="#products"
+                    href={user ? "/account" : "/login"}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 mb-5 transition-colors duration-300"
+                    style={{ color: user ? "#e8c4ad" : "rgba(255,255,255,0.75)" }}
+                  >
+                    <span
+                      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: "rgba(255,255,255,0.08)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      <User size={16} />
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-cormorant)",
+                        fontSize: "1.35rem",
+                        fontWeight: 400,
+                      }}
+                    >
+                      {user ? `Hi, ${firstName || "Beautiful"}` : "Sign In"}
+                    </span>
+                  </Link>
+
+                  <Link
+                    href="/store"
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full text-[#1e1814] font-semibold text-xs tracking-[0.12em] uppercase transition-all hover:opacity-90"
                     style={{ background: "rgba(255,255,255,0.93)" }}

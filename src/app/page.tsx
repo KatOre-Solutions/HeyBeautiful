@@ -1,4 +1,3 @@
-import { ClientWrapper } from "@/components/ClientWrapper";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/sections/Hero";
 import BrandStory from "@/components/sections/BrandStory";
@@ -12,19 +11,17 @@ import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <ClientWrapper>
-      <main>
-        <Navbar />
-        <Hero />
-        <BrandStory />
-        <FeaturedProducts />
-        <Bundles />
-        <Benefits />
-        <Lifestyle />
-        <Reviews />
-        <Newsletter />
-        <Footer />
-      </main>
-    </ClientWrapper>
+    <main>
+      <Navbar />
+      <Hero />
+      <BrandStory />
+      <FeaturedProducts />
+      <Bundles />
+      <Benefits />
+      <Lifestyle />
+      <Reviews />
+      <Newsletter />
+      <Footer />
+    </main>
   );
 }
