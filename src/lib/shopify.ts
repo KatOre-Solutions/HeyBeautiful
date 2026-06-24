@@ -1,11 +1,3 @@
-import { createStorefrontApiClient } from "@shopify/storefront-api-client";
-
-export const shopify = createStorefrontApiClient({
-  storeDomain: process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN!,
-  apiVersion: "2026-04",
-  publicAccessToken: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN!,
-});
-
 const PRODUCTS_QUERY = `{
   products(first: 5, sortKey: BEST_SELLING) {
     edges {
@@ -45,10 +37,10 @@ interface ShopifyProductNode {
   tags: string[];
   priceRange: {
     minVariantPrice: { amount: string; currencyCode: string };
-  };
+  } | null;
   compareAtPriceRange: {
     minVariantPrice: { amount: string };
-  };
+  } | null;
   images: {
     edges: Array<{ node: { url: string; altText: string | null } }>;
   };
@@ -65,19 +57,37 @@ export interface ShopifyProduct {
 }
 
 export async function getFeaturedProducts(): Promise<ShopifyProduct[]> {
+  const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
+  const token = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN;
+
+  if (!domain || !token) {
+    return [];
+  }
+
   try {
-    const { data, errors } = await shopify.request(PRODUCTS_QUERY, {
-      fetchApiOptions: {
-        next: { revalidate: 3600 },
-      } as RequestInit,
+    const response = await fetch(`${domain}/api/2026-04/graphql.json`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Storefront-Access-Token": token,
+      },
+      body: JSON.stringify({ query: PRODUCTS_QUERY }),
+      next: { revalidate: 3600 },
     });
 
-    if (errors || !data?.products) {
-      console.error("Shopify query errors:", errors);
+    if (!response.ok) {
+      console.error("Shopify fetch error:", response.status);
       return [];
     }
 
-    return (data.products.edges as Array<{ node: ShopifyProductNode }>).map(
+    const json = await response.json();
+
+    if (json.errors || !json.data?.products) {
+      console.error("Shopify query errors:", json.errors);
+      return [];
+    }
+
+    return (json.data.products.edges as Array<{ node: ShopifyProductNode }>).map(
       ({ node }) => {
         const numericId = parseInt(node.id.split("/").pop() ?? "0", 10);
         const compareAmount = parseFloat(
@@ -88,7 +98,7 @@ export async function getFeaturedProducts(): Promise<ShopifyProduct[]> {
           id: `product:${numericId}`,
           name: node.title,
           category: node.productType || "Product",
-          price: parseFloat(node.priceRange.minVariantPrice.amount),
+          price: parseFloat(node.priceRange?.minVariantPrice?.amount ?? "0"),
           originalPrice: compareAmount > 0 ? compareAmount : null,
           image: node.images.edges[0]?.node.url ?? "/images/item-1.jpeg",
           tags: node.tags.slice(0, 3),
