@@ -7,12 +7,28 @@ via `src/context/AuthContext.tsx`; cart and wishlist are React contexts
 Shopify** — Shopify isn't wired up yet, so product/bundle data currently lives in
 `src/lib/products.ts` as placeholders (swap that one module for the Shopify Storefront API later).
 
-## Branch naming
+## Branching strategy
+
+```
+feature branch → PR → main   (integration + testing)
+                              ↓
+                   main → PR → master   (production-ready only)
+                                         ↓
+                                    Netlify auto-deploys
+```
+
+- **`master`** — production. Protected: no direct commits, PRs only, 1 approval required.
+  Netlify deploys exclusively from this branch.
+- **`main`** — integration. All feature/fix PRs merge here first. Test and verify on `main`
+  before promoting to `master`. Protected: PRs only, no direct commits.
+- **Feature branches** — branch off `main`, open PRs back to `main`.
+
+### Branch naming
 
 Feature branches use:
 
 ```
-oreutlwile/feat/<issue-number>/<kebab-issue-title>
+<username>/feat/<issue-number>/<kebab-issue-title>
 ```
 
 Example: issue #3 "Product Detail Pages" → `oreutlwile/feat/3/product-detail-pages`.
@@ -68,7 +84,8 @@ post findings as inline GitHub PR comments instead:
 
 ## Commit / PR
 
-- Branch off the relevant base; never commit straight to `master`.
+- Branch off `main`; never commit straight to `main` or `master`.
+- PRs target `main`. Only `main → master` PRs go to production.
 - Commit messages reference the issue (`#3`); use `Closes #n` in the PR body to auto-close.
 
 ## Build note — Windows path casing
