@@ -16,6 +16,7 @@ export const fadeUp: Variants = {
     y: 0,
     filter: "blur(0px)",
     transition: { duration: 0.8, ease: ease.cinematic },
+    transitionEnd: { filter: "none" },
   },
 };
 
@@ -26,6 +27,7 @@ export const fadeIn: Variants = {
     opacity: 1,
     filter: "blur(0px)",
     transition: { duration: 1, ease: ease.luxury },
+    transitionEnd: { filter: "none" },
   },
 };
 
@@ -99,6 +101,7 @@ export const heroEntrance: Variants = {
     y: 0,
     filter: "blur(0px)",
     transition: { duration: 1.2, ease: ease.cinematic },
+    transitionEnd: { filter: "none" },
   },
 };
 
