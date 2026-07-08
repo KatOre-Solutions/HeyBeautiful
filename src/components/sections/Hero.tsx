@@ -4,7 +4,7 @@ import { useRef, useEffect } from "react";
 import { preload } from "react-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowDown, Sparkles } from "lucide-react";
-import { heroEntrance, staggerContainer, fadeUp, shimmerLine } from "@/lib/motion";
+import { heroEntrance, staggerContainer, fadeUp, shimmerLine, ease } from "@/lib/motion";
 
 const HERO_VIDEO_SRC = "/video/hero-video.mp4";
 
@@ -214,7 +214,7 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2"
         initial={{ opacity: 0, y: 16 }}
         animate={startEntrance ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-        transition={{ delay: 2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ delay: 2, duration: 1, ease: ease.cinematic }}
       >
         <motion.div
           animate={{ y: [0, 8, 0] }}

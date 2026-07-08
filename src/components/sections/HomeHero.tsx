@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Hero from "@/components/sections/Hero";
-import PageLoader, { LOADER_SESSION_KEY } from "@/components/ui/PageLoader";
+import PageLoader from "@/components/ui/PageLoader";
+import {
+  LOADER_SESSION_KEY,
+  hasShownLoader,
+  markLoaderShown,
+} from "@/lib/pageLoader";
 import { ease } from "@/lib/motion";
 
 /** How long to wait for the video before revealing anyway. */
@@ -28,23 +33,21 @@ export default function HomeHero() {
   const handleVideoReady = useCallback(() => setVideoReady(true), []);
 
   useEffect(() => {
-    if (skipped) return;
-    let seen = false;
-    try {
-      seen = !!sessionStorage.getItem(LOADER_SESSION_KEY);
-    } catch {}
+    // videoReady in the guard/deps: once the video signals ready before the
+    // fallback fires, this re-runs, the cleanup clears the stale timer, and we
+    // return early without arming a new one.
+    if (skipped || videoReady) return;
+    const seen = hasShownLoader();
     shownThisSpaSession = true;
     if (seen) {
       // Loader is already display:none via the injected style — drop it silently.
       setSkipped(true);
       return;
     }
-    try {
-      sessionStorage.setItem(LOADER_SESSION_KEY, "1");
-    } catch {}
+    markLoaderShown();
     const fallback = setTimeout(() => setVideoReady(true), FALLBACK_MS);
     return () => clearTimeout(fallback);
-  }, [skipped]);
+  }, [skipped, videoReady]);
 
   const revealed = skipped || videoReady;
 
@@ -61,7 +64,9 @@ export default function HomeHero() {
     <>
       {!skipped && <script dangerouslySetInnerHTML={{ __html: skipScript }} />}
       <AnimatePresence>
-        {!skipped && !videoReady && <PageLoader />}
+        {!skipped && !videoReady && (
+          <PageLoader rootSelector="[data-site-root]" />
+        )}
       </AnimatePresence>
       {showSettle && (
         <motion.div

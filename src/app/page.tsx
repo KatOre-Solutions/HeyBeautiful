@@ -15,7 +15,7 @@ export default async function Home() {
   const products = await getFeaturedProducts(); 
   return (
     <ClientWrapper>
-      <main>
+      <main data-site-root>
         <Navbar />
         <HomeHero />
         <BrandStory />
