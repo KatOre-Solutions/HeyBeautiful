@@ -54,14 +54,33 @@ export interface ShopifyProduct {
   originalPrice: number | null;
   image: string;
   tags: string[];
+  placeholder?: boolean;
+  // Optional fields the storefront card renders when present. Not populated by
+  // the home/featured query yet; wired up when the store pages migrate onto
+  // ShopifyProduct so the shared ProductCard can show detail links + ratings.
+  /** Enables the card's stretched link to `/store/<slug>`. */
+  slug?: string;
+  rating?: number;
+  reviews?: number;
+  /** Explicit badge label; falls back to a "Sale" badge when `originalPrice` is set. */
+  badge?: string;
+  badgeColor?: string;
 }
+
+const placeholderProducts: ShopifyProduct[] = [
+  { id: "product:1", name: "Glow Collagen Blend", category: "Beauty Support", price: 54, originalPrice: 68, image: "", tags: ["Skin", "Hair", "Nails"], placeholder: true },
+  { id: "product:2", name: "Plant Protein Luxe", category: "Performance", price: 62, originalPrice: null, image: "", tags: ["Protein", "Recovery", "Clean"], placeholder: true },
+  { id: "product:3", name: "Morning Glow Ritual", category: "Wellness", price: 48, originalPrice: 58, image: "", tags: ["Energy", "Mood", "Focus"], placeholder: true },
+  { id: "product:4", name: "Recovery Rose Blend", category: "Recovery", price: 44, originalPrice: null, image: "", tags: ["Sleep", "Repair", "Calm"], placeholder: true },
+  { id: "product:5", name: "Strength & Radiance", category: "Performance", price: 58, originalPrice: 72, image: "", tags: ["Strength", "Glow", "Vitality"], placeholder: true },
+];
 
 export async function getFeaturedProducts(): Promise<ShopifyProduct[]> {
   const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
   const token = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN;
 
   if (!domain || !token) {
-    return [];
+    return placeholderProducts;
   }
 
   try {
@@ -72,7 +91,7 @@ export async function getFeaturedProducts(): Promise<ShopifyProduct[]> {
         "X-Shopify-Storefront-Access-Token": token,
       },
       body: JSON.stringify({ query: PRODUCTS_QUERY }),
-      next: { revalidate: 3600 },
+      next: { revalidate: 60, tags: ["products"] },
     });
 
     if (!response.ok) {
