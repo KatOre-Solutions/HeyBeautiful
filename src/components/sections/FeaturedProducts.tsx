@@ -7,6 +7,7 @@ import { Heart, ShoppingBag } from "lucide-react";
 import { fadeUp, staggerContainer, staggerContainerSlow, ease } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCart } from "@/context/CartContext";
 import type { ShopifyProduct } from "@/lib/shopify";
 
 const ZAR = new Intl.NumberFormat("en-ZA", {
@@ -94,9 +95,18 @@ function WishlistHeart({ product }: { product: ShopifyProduct }) {
 function ProductCard({ product }: { product: ShopifyProduct }) {
   const [hovered, setHovered] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
+  const { addItem } = useCart();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    addItem({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      price: product.price,
+      image: product.image,
+    });
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   };
