@@ -1,13 +1,35 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+import { preload } from "react-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowDown, Sparkles } from "lucide-react";
-import { heroEntrance, staggerContainer, fadeUp, shimmerLine } from "@/lib/motion";
+import { heroEntrance, staggerContainer, fadeUp, shimmerLine, ease } from "@/lib/motion";
 
-export default function Hero() {
+const HERO_VIDEO_SRC = "/video/hero-video.mp4";
+
+interface HeroProps {
+  /** Fired once when the background video has decoded its first frame (or errored). */
+  onVideoReady?: () => void;
+  /** When false, entrance animations hold at "hidden" until flipped to true. */
+  startEntrance?: boolean;
+}
+
+export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) {
+  // Hoists <link rel="preload" as="video"> into the head during SSR so the
+  // browser starts the download with the initial HTML, before hydration.
+  // High priority: the page reveal blocks on this video.
+  preload(HERO_VIDEO_SRC, {
+    as: "video",
+    type: "video/mp4",
+    fetchPriority: "high",
+  });
+
   const ref = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const onVideoReadyRef = useRef(onVideoReady);
+  onVideoReadyRef.current = onVideoReady;
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -19,9 +41,36 @@ export default function Hero() {
   const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
 
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(() => {});
+    const video = videoRef.current;
+    if (!video) return;
+
+    let fired = false;
+    let paintDelay: ReturnType<typeof setTimeout> | undefined;
+
+    // Brief delay after the first frame decodes so it's painted before the unveil.
+    const ready = () => {
+      if (fired) return;
+      fired = true;
+      paintDelay = setTimeout(() => onVideoReadyRef.current?.(), 250);
+    };
+
+    // loadeddata (HAVE_CURRENT_DATA) over canplaythrough — the latter is
+    // unreliable on Safari/iOS and slow networks; the video keeps buffering
+    // while it plays, unnoticed. readyState covers the already-cached case.
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA || video.error) {
+      ready();
+    } else {
+      video.addEventListener("loadeddata", ready, { once: true });
+      video.addEventListener("error", ready, { once: true });
     }
+
+    video.play().catch(() => {});
+
+    return () => {
+      video.removeEventListener("loadeddata", ready);
+      video.removeEventListener("error", ready);
+      if (paintDelay) clearTimeout(paintDelay);
+    };
   }, []);
 
   return (
@@ -44,7 +93,7 @@ export default function Hero() {
           className="absolute inset-0 w-full h-full object-cover"
           style={{ transform: "scale(1.05)" }}
         >
-          <source src="/video/hero-video.mp4" type="video/mp4" />
+          <source src={HERO_VIDEO_SRC} type="video/mp4" />
         </video>
 
         {/* Cinematic warm tint overlay */}
@@ -81,7 +130,7 @@ export default function Hero() {
         <motion.div
           variants={staggerContainer}
           initial="hidden"
-          animate="visible"
+          animate={startEntrance ? "visible" : "hidden"}
           className="max-w-4xl mx-auto"
         >
           {/* Label */}
@@ -164,8 +213,8 @@ export default function Hero() {
       <motion.div
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2"
         initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+        animate={startEntrance ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+        transition={{ delay: 2, duration: 1, ease: ease.cinematic }}
       >
         <motion.div
           animate={{ y: [0, 8, 0] }}

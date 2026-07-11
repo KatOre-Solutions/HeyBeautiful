@@ -1,6 +1,6 @@
 import { ClientWrapper } from "@/components/ClientWrapper";
 import Navbar from "@/components/Navbar";
-import Hero from "@/components/sections/Hero";
+import HomeHero from "@/components/sections/HomeHero";
 import BrandStory from "@/components/sections/BrandStory";
 import FeaturedProducts from "@/components/sections/FeaturedProducts";
 import Bundles from "@/components/sections/Bundles";
@@ -15,9 +15,9 @@ export default async function Home() {
   const products = await getFeaturedProducts(); 
   return (
     <ClientWrapper>
-      <main>
+      <main data-site-root>
         <Navbar />
-        <Hero />
+        <HomeHero />
         <BrandStory />
         <FeaturedProducts products={products} />
         <Bundles />
