@@ -5,61 +5,21 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { ease } from "@/lib/motion";
-import { hasShownLoader } from "@/lib/pageLoader";
-
-interface PageLoaderProps {
-  /**
-   * Selector for the page content container to make inert / aria-busy while the
-   * loader is shown. The loader itself is a decorative, aria-hidden overlay with
-   * no focusable content, so it's fine for it to live inside this container.
-   */
-  rootSelector?: string;
-}
 
 /**
- * Full-screen branded loader. Renders until its parent removes it via
- * AnimatePresence, which triggers the slide-up exit and — only once the exit
- * finishes and the component unmounts — releases the body scroll lock, the
- * content inert/aria-busy state, and the loading announcement.
+ * Full-screen branded loader — purely presentational. The HomeHero orchestrator
+ * owns the scroll lock, the content inert/aria-busy state, and the session flag
+ * (see `engagePageLock`), releasing them on the loader's exit-complete. This
+ * component just renders the overlay (removed via AnimatePresence, which drives
+ * the slide-up exit) and a portaled loading announcement.
  */
-export default function PageLoader({
-  rootSelector = "[data-site-root]",
-}: PageLoaderProps) {
+export default function PageLoader() {
   const reducedMotion = useReducedMotion();
   // Gate the portaled announcement to client-only so createPortal never runs
   // during SSR (avoids a hydration mismatch).
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
-
-  useEffect(() => {
-    // Repeat visit: the loader is display:none before paint — never lock scroll
-    // or inert the page. (Runs before HomeHero's effect marks the flag — child
-    // effects fire before parent effects — so first visits still engage.)
-    if (hasShownLoader()) return;
-
-    const root = document.querySelector(rootSelector);
-
-    // Lock scroll and compensate for the removed scrollbar so centered/fixed
-    // content doesn't shift horizontally while the lock is engaged.
-    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
-    const previousOverflow = document.body.style.overflow;
-    const previousPaddingRight = document.body.style.paddingRight;
-    document.body.style.overflow = "hidden";
-    if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
-
-    // Make the obscured page content inert (not focusable / not in the a11y
-    // tree) and flag it busy for assistive tech while the loader covers it.
-    root?.setAttribute("inert", "");
-    root?.setAttribute("aria-busy", "true");
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.paddingRight = previousPaddingRight;
-      root?.removeAttribute("inert");
-      root?.setAttribute("aria-busy", "false");
-    };
-  }, [rootSelector]);
 
   return (
     <>

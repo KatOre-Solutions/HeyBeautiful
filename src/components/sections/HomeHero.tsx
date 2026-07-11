@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Hero from "@/components/sections/Hero";
 import PageLoader from "@/components/ui/PageLoader";
 import {
   LOADER_SESSION_KEY,
+  engagePageLock,
   hasShownLoader,
   markLoaderShown,
 } from "@/lib/pageLoader";
@@ -13,6 +14,9 @@ import { ease } from "@/lib/motion";
 
 /** How long to wait for the video before revealing anyway. */
 const FALLBACK_MS = 5000;
+
+/** Content container made inert / scroll-locked while the loader is up. */
+const ROOT_SELECTOR = "[data-site-root]";
 
 // Survives client-side route changes; resets on full reload, where
 // sessionStorage (checked pre-paint by the inline script) takes over.
@@ -30,12 +34,19 @@ export default function HomeHero() {
   const [settled, setSettled] = useState(false);
   const reducedMotion = useReducedMotion();
 
+  // Release fn for the first-visit scroll-lock / inert. Held in a ref so the
+  // loader's exit-complete (below) can release it *after* the slide-up finishes,
+  // keeping the page locked while the loader animates away.
+  const releaseLockRef = useRef<(() => void) | null>(null);
+
   const handleVideoReady = useCallback(() => setVideoReady(true), []);
 
   useEffect(() => {
     // videoReady in the guard/deps: once the video signals ready before the
     // fallback fires, this re-runs, the cleanup clears the stale timer, and we
-    // return early without arming a new one.
+    // return early without arming a new one. (The lock is intentionally NOT
+    // released in this cleanup — it must survive until the loader's exit
+    // animation completes; see onExitComplete below.)
     if (skipped || videoReady) return;
     const seen = hasShownLoader();
     shownThisSpaSession = true;
@@ -44,10 +55,21 @@ export default function HomeHero() {
       setSkipped(true);
       return;
     }
+    // First visit: the orchestrator reads + writes the flag and engages the
+    // page lock atomically here, so neither depends on PageLoader's effect
+    // running first. This makes the lock robust to a future Suspense/wrapper
+    // boundary reordering child-before-parent effects.
     markLoaderShown();
+    releaseLockRef.current = engagePageLock(ROOT_SELECTOR);
     const fallback = setTimeout(() => setVideoReady(true), FALLBACK_MS);
     return () => clearTimeout(fallback);
   }, [skipped, videoReady]);
+
+  // Safety net: if HomeHero unmounts while still locked (e.g. navigation away
+  // before the loader's exit runs), release on true unmount. Empty deps so this
+  // fires only on unmount, never on the videoReady flip. The normal release
+  // path is the loader's onExitComplete.
+  useEffect(() => () => releaseLockRef.current?.(), []);
 
   const revealed = skipped || videoReady;
 
@@ -63,10 +85,15 @@ export default function HomeHero() {
   return (
     <>
       {!skipped && <script dangerouslySetInnerHTML={{ __html: skipScript }} />}
-      <AnimatePresence>
-        {!skipped && !videoReady && (
-          <PageLoader rootSelector="[data-site-root]" />
-        )}
+      <AnimatePresence
+        onExitComplete={() => {
+          // Loader's slide-up has finished — now release the lock/inert. On
+          // repeat visits the ref is null (lock never engaged), so this no-ops.
+          releaseLockRef.current?.();
+          releaseLockRef.current = null;
+        }}
+      >
+        {!skipped && !videoReady && <PageLoader />}
       </AnimatePresence>
       {showSettle && (
         <motion.div
