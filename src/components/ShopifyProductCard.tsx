@@ -9,7 +9,7 @@ import { fadeUp, ease } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
-import type { ShopifyProduct } from "@/lib/shopify";
+import { isSoldOut, toCartItem, type ShopifyProduct } from "@/lib/shopify";
 
 const ZAR = new Intl.NumberFormat("en-ZA", {
   style: "currency",
@@ -95,27 +95,28 @@ function WishlistHeart({ product }: { product: ShopifyProduct }) {
 }
 
 /**
- * Shared storefront product card, built on `ShopifyProduct`.
+ * Shared storefront product card, built on `ShopifyProduct`. Used by the home
+ * page's featured grid, the store grid and the "you may also love" rail.
  *
- * Used by the home page's featured grid today. It's a superset of the legacy
- * `Product`-based `ProductCard`: the detail link, star rating and explicit
- * badge render only when the matching optional fields are present, so the
- * store pages can adopt this same component once they move onto ShopifyProduct.
+ * The detail link, star rating and explicit badge render only when the matching
+ * optional fields are present, so a product missing (say) review metafields
+ * simply drops that row rather than showing a placeholder value.
  */
 export default function ShopifyProductCard({ product }: { product: ShopifyProduct }) {
   const [hovered, setHovered] = useState(false);
   const { addItem } = useCart();
 
+  const soldOut = isSoldOut(product);
+  // Placeholders have no Shopify variant to buy; sold-out products have none in
+  // stock. Both keep the card's imagery but lose every purchase control.
+  const purchasable = !product.placeholder && !soldOut;
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem({
-      id: product.id,
-      name: product.name,
-      category: product.category,
-      price: product.price,
-      image: product.image,
-    });
+    // Quick-add takes the first in-stock variant; the detail page is where a
+    // shopper picks a specific one.
+    addItem(toCartItem(product));
   };
 
   return (
@@ -164,11 +165,18 @@ export default function ShopifyProductCard({ product }: { product: ShopifyProduc
           </motion.div>
         )}
 
-        {/* Top row — badge + wishlist. Placeholders aren't purchasable, so they
+        {/* Top row — badge + wishlist. Placeholders aren't real products, so they
             get no badge and no wishlist control. */}
         {!product.placeholder && (
           <div className="absolute top-4 left-4 right-4 flex items-start justify-between z-20">
-            {product.badge ? (
+            {soldOut ? (
+              <span
+                className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase"
+                style={{ background: "rgba(30,24,20,0.6)" }}
+              >
+                Sold Out
+              </span>
+            ) : product.badge ? (
               <span
                 className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase"
                 style={{ background: product.badgeColor ?? "#c9977a" }}
@@ -191,7 +199,7 @@ export default function ShopifyProductCard({ product }: { product: ShopifyProduc
 
         {/* Quick-add overlay */}
         <AnimatePresence>
-          {hovered && !product.placeholder && (
+          {hovered && purchasable && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -287,7 +295,7 @@ export default function ShopifyProductCard({ product }: { product: ShopifyProduc
               </span>
             )}
           </div>
-          {!product.placeholder && (
+          {purchasable && (
             <button
               onClick={handleAddToCart}
               className="relative z-[2] w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
