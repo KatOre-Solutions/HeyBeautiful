@@ -164,27 +164,30 @@ export default function ShopifyProductCard({ product }: { product: ShopifyProduc
           </motion.div>
         )}
 
-        {/* Top row — badge + wishlist */}
-        <div className="absolute top-4 left-4 right-4 flex items-start justify-between z-20">
-          {product.badge ? (
-            <span
-              className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase"
-              style={{ background: product.badgeColor ?? "#c9977a" }}
-            >
-              {product.badge}
-            </span>
-          ) : product.originalPrice != null ? (
-            <span
-              className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase"
-              style={{ background: "#c9977a" }}
-            >
-              Sale
-            </span>
-          ) : (
-            <div />
-          )}
-          <WishlistHeart product={product} />
-        </div>
+        {/* Top row — badge + wishlist. Placeholders aren't purchasable, so they
+            get no badge and no wishlist control. */}
+        {!product.placeholder && (
+          <div className="absolute top-4 left-4 right-4 flex items-start justify-between z-20">
+            {product.badge ? (
+              <span
+                className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase"
+                style={{ background: product.badgeColor ?? "#c9977a" }}
+              >
+                {product.badge}
+              </span>
+            ) : product.originalPrice != null ? (
+              <span
+                className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase"
+                style={{ background: "#c9977a" }}
+              >
+                Sale
+              </span>
+            ) : (
+              <div />
+            )}
+            <WishlistHeart product={product} />
+          </div>
+        )}
 
         {/* Quick-add overlay */}
         <AnimatePresence>
@@ -284,14 +287,16 @@ export default function ShopifyProductCard({ product }: { product: ShopifyProduc
               </span>
             )}
           </div>
-          <button
-            onClick={handleAddToCart}
-            className="relative z-[2] w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
-            style={{ background: "rgba(201,151,122,0.1)", border: "1px solid rgba(201,151,122,0.3)" }}
-            aria-label={`Add ${product.name} to bag`}
-          >
-            <ShoppingBag size={14} className="text-[#c9977a]" />
-          </button>
+          {!product.placeholder && (
+            <button
+              onClick={handleAddToCart}
+              className="relative z-[2] w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+              style={{ background: "rgba(201,151,122,0.1)", border: "1px solid rgba(201,151,122,0.3)" }}
+              aria-label={`Add ${product.name} to bag`}
+            >
+              <ShoppingBag size={14} className="text-[#c9977a]" />
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
