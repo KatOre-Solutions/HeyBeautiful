@@ -3,11 +3,12 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { fadeUp, staggerContainer, staggerContainerSlow } from "@/lib/motion";
-import { products, bundles } from "@/lib/products";
-import ProductCard from "@/components/ProductCard";
+import { bundles } from "@/lib/products";
+import ShopifyProductCard from "@/components/ShopifyProductCard";
 import BundleCard from "@/components/BundleCard";
+import type { ShopifyProduct } from "@/lib/shopify";
 
-export default function StoreContent() {
+export default function StoreContent({ products }: { products: ShopifyProduct[] }) {
   const bundlesRef = useRef<HTMLDivElement>(null);
   const bundlesInView = useInView(bundlesRef, { once: true, margin: "-80px" });
 
@@ -53,16 +54,25 @@ export default function StoreContent() {
 
       {/* All products */}
       <section className="section-padding pb-20 md:pb-28" style={{ background: "#faf7f4" }}>
-        <motion.div
-          variants={staggerContainerSlow}
-          initial="hidden"
-          animate="visible"
-          className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
-        >
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </motion.div>
+        {products.length === 0 ? (
+          <p
+            className="max-w-7xl mx-auto text-center text-ink/55"
+            style={{ fontSize: "0.95rem", fontWeight: 300 }}
+          >
+            Our collection is being restocked — check back shortly.
+          </p>
+        ) : (
+          <motion.div
+            variants={staggerContainerSlow}
+            initial="hidden"
+            animate="visible"
+            className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
+          >
+            {products.map((product) => (
+              <ShopifyProductCard key={product.id} product={product} />
+            ))}
+          </motion.div>
+        )}
       </section>
 
       {/* Bundles */}

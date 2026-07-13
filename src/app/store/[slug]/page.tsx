@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { products, getProductBySlug, getRelatedProducts } from "@/lib/products";
+import { getProducts, getProductBySlug, getRelatedProducts } from "@/lib/shopify";
 import ProductDetailContent from "./ProductDetailContent";
 
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  const products = await getProducts();
+  // Placeholders have no Shopify handle, so they get no detail page.
+  return products.filter((p) => p.slug).map((p) => ({ slug: p.slug! }));
 }
 
 export async function generateMetadata({
@@ -15,7 +17,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) return { title: "Product not found — Hey Beautiful" };
   return {
     title: `${product.name} — Hey Beautiful`,
@@ -29,10 +31,10 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const [product, all] = await Promise.all([getProductBySlug(slug), getProducts()]);
   if (!product) notFound();
 
-  const related = getRelatedProducts(product);
+  const related = getRelatedProducts(product, all);
 
   return (
     <main>
