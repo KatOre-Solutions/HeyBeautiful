@@ -46,6 +46,10 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   `ease.cinematic`, …) rather than inlining `[0.16, 1, 0.3, 1]`.
 - **Shared CSS utilities** (`src/app/globals.css`): `section-py`, `section-padding`,
   `label-caps`, `heading-display`, `heading-serif`, `btn-outline`, `glass-card`, `product-card`.
+- **Email verification** (#22): `/checkout` requires `emailVerified` — enforced client-side in
+  `CheckoutContent` (the edge `proxy.ts` can't read Firebase's `emailVerified`), redirecting
+  unverified users to `/verify-email?from=<dest>`. `/account` is advisory (soft reminder only).
+  `AuthContext.reloadUser()` refreshes `emailVerified`; the verify page polls it to auto-continue.
 - **Page pattern**: a top-level route is a server `page.tsx` (`<Navbar /> … <Footer />` +
   `metadata`) that renders a `"use client"` `*Content.tsx` for interactivity (see
   `app/account`, `app/checkout`). Route protection lives in `src/proxy.ts` (Next 16 renamed the

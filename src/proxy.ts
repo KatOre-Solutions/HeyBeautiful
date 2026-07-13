@@ -4,7 +4,9 @@ import { AUTH_COOKIE } from "@/lib/constants";
 
 // Routes that require a session.
 const PROTECTED = ["/account", "/checkout"];
-// TODO(#22): email verification is advisory — protected routes don't enforce emailVerified.
+// #22: /checkout additionally requires a verified email, but that's enforced
+// client-side in CheckoutContent — the edge proxy only sees the presence cookie
+// and can't read Firebase's emailVerified. /account stays advisory (soft reminder).
 // Routes a signed-in user shouldn't see (verify-email is intentionally excluded —
 // authenticated-but-unverified users still need it).
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];

@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   type ReactNode,
@@ -39,6 +40,9 @@ interface AuthContextType {
   signInWithApple: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   sendVerification: () => Promise<void>;
+  /** Reloads the Firebase user and returns the fresh `emailVerified`. Resilient:
+   *  returns false (never throws) on failure, and coalesces concurrent calls. */
+  reloadUser: () => Promise<boolean>;
 }
 
 /** Lightweight presence flag read by the proxy. Not a credential. */
@@ -59,6 +63,13 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // Bumped after a successful reload so consumers re-render and read the
+  // freshly-mutated `user.emailVerified` (reload() mutates currentUser in place
+  // and does not fire onAuthStateChanged).
+  const [, setTick] = useState(0);
+  // Holds the active reload so overlapping callers (poll + tab-focus) share one
+  // in-flight request instead of firing concurrent reload()s.
+  const reloadInFlight = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
     // Complete any pending signInWithRedirect (the popup-blocked / mobile fallback).
@@ -159,6 +170,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const reloadUser = useCallback(async () => {
+    if (reloadInFlight.current) return reloadInFlight.current;
+
+    const run = (async () => {
+      if (!auth.currentUser) return false;
+      try {
+        await auth.currentUser.reload();
+      } catch (err) {
+        // Transient network / expired-session failures shouldn't break the
+        // polling loop — treat as "still unverified" and let the next tick retry.
+        console.error("User reload failed:", err);
+        return false;
+      }
+      // Force consumers to re-read the mutated currentUser.
+      setTick((t) => t + 1);
+      // Optional-chain in case a concurrent sign-out cleared currentUser during
+      // the await — honour the "never throws" contract.
+      return auth.currentUser?.emailVerified ?? false;
+    })();
+
+    reloadInFlight.current = run;
+    try {
+      return await run;
+    } finally {
+      reloadInFlight.current = null;
+    }
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -171,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithApple,
         resetPassword,
         sendVerification,
+        reloadUser,
       }}
     >
       {children}
@@ -191,6 +231,7 @@ export function useAuth() {
       signInWithApple: async () => {},
       resetPassword: async () => {},
       sendVerification: async () => {},
+      reloadUser: async () => false,
     } satisfies AuthContextType;
   }
   return ctx;

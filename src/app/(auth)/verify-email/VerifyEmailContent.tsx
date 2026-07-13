@@ -1,26 +1,80 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, CheckCircle } from "lucide-react";
 import { fadeUp } from "@/lib/motion";
 import { useAuth } from "@/context/AuthContext";
+import { resolveDestination } from "@/lib/redirect";
 import AuthForm from "@/components/auth/AuthForm";
 import AuthErrorToast, { getAuthErrorMessage } from "@/components/auth/AuthErrorToast";
 
-export default function VerifyEmailContent() {
+// How often to re-check emailVerified while the page is open. Firebase has no
+// live listener for verification, so we poll (and also re-check on tab focus).
+const VERIFY_POLL_INTERVAL_MS = 3000;
+
+function VerifyEmail() {
   const router = useRouter();
-  const { user, loading, sendVerification, signOut } = useAuth();
+  const params = useSearchParams();
+  // Where to send the user once verified — the checkout guard passes ?from=/checkout…;
+  // resolveDestination falls back to /account and blocks open redirects.
+  const dest = resolveDestination(params.get("from"));
+  const { user, loading, sendVerification, reloadUser, signOut } = useAuth();
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
   const [error, setError] = useState("");
+  // One-shot navigation guard — Strict Mode double-invokes effects, and the
+  // mount check / poll / focus handler could otherwise each fire a navigation.
+  const redirected = useRef(false);
+
+  const navOnce = useCallback(
+    (path: string) => {
+      if (redirected.current) return;
+      redirected.current = true;
+      router.replace(path);
+    },
+    [router]
+  );
 
   // No session (e.g. opened directly) — nothing to verify, send to login.
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-  }, [loading, user, router]);
+    if (!loading && !user) navOnce("/login");
+  }, [loading, user, navOnce]);
+
+  // Auto-detect verification: already-verified on mount, a background poll, or
+  // the user returning to this tab after clicking the email link. Because
+  // emailVerified isn't live, each trigger calls reloadUser() (which coalesces
+  // concurrent calls and never throws). Tearing down on unmount / sign-out /
+  // success means no reload requests linger after the page is inactive.
+  useEffect(() => {
+    if (loading || !user) return;
+    if (user.emailVerified) {
+      navOnce(dest);
+      return;
+    }
+
+    let cancelled = false;
+    const check = async () => {
+      const verified = await reloadUser();
+      if (!cancelled && verified) navOnce(dest);
+    };
+
+    const interval = setInterval(check, VERIFY_POLL_INTERVAL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", check);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", check);
+    };
+  }, [loading, user, reloadUser, navOnce, dest]);
 
   const handleResend = async () => {
     if (resending) return;
@@ -132,7 +186,7 @@ export default function VerifyEmailContent() {
           <motion.button
             variants={fadeUp}
             type="button"
-            onClick={() => router.push("/account")}
+            onClick={() => router.push(dest)}
             whileHover={{ scale: 1.015 }}
             whileTap={{ scale: 0.98 }}
             className="w-full py-4 rounded-full text-white font-semibold text-[11px] tracking-[0.13em] uppercase"
@@ -142,7 +196,9 @@ export default function VerifyEmailContent() {
               boxShadow: "0 6px 24px rgba(201,151,122,0.38)",
             }}
           >
-            Continue to My Account
+            {dest.startsWith("/checkout")
+              ? "Continue to Checkout"
+              : "Continue to My Account"}
           </motion.button>
 
           <motion.button
@@ -159,5 +215,14 @@ export default function VerifyEmailContent() {
 
       <AuthErrorToast message={error} onDismiss={() => setError("")} />
     </>
+  );
+}
+
+export default function VerifyEmailContent() {
+  // useSearchParams requires a Suspense boundary (matches LoginContent).
+  return (
+    <Suspense fallback={null}>
+      <VerifyEmail />
+    </Suspense>
   );
 }
