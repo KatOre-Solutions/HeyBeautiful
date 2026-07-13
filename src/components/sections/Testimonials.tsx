@@ -17,6 +17,7 @@ import {
   slideInLeft,
   slideInRight,
   staggerContainer,
+  floatAnimation,
   ease,
 } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,9 @@ interface Testimonial {
   alt: string;
   quote: string;
   name: string;
-  role: string;
+  /** Occupation shown under the name (named `occupation`, not `role`, to avoid
+   *  confusion with the ARIA `role` attribute). */
+  occupation: string;
   rating: number;
   location: string;
   timeAgo: string;
@@ -50,7 +53,7 @@ const testimonials: Testimonial[] = [
     alt: "Customer stretching joyfully at home",
     quote: "Eight weeks in and I've honestly stopped reaching for anything else.",
     name: "Thandi M.",
-    role: "New mom & yoga teacher",
+    occupation: "New mom & yoga teacher",
     rating: 5,
     location: "Cape Town, SA",
     timeAgo: "2 weeks ago",
@@ -65,7 +68,7 @@ const testimonials: Testimonial[] = [
     alt: "Customer with a green smoothie in a bright kitchen",
     quote: "The only supplement I actually look forward to every morning.",
     name: "Amara O.",
-    role: "Creative director",
+    occupation: "Creative director",
     rating: 5,
     location: "Johannesburg, SA",
     timeAgo: "1 month ago",
@@ -80,7 +83,7 @@ const testimonials: Testimonial[] = [
     alt: "Customer laughing after a workout",
     quote: "Three people asked what I'd changed. It was this.",
     name: "Lerato K.",
-    role: "Attorney & marathon runner",
+    occupation: "Attorney & marathon runner",
     rating: 5,
     location: "Durban, SA",
     timeAgo: "3 weeks ago",
@@ -95,7 +98,7 @@ const testimonials: Testimonial[] = [
     alt: "Two friends laughing over coffee",
     quote: "My sister and I are both obsessed — it's our little ritual now.",
     name: "Nadia J.",
-    role: "Pilates instructor",
+    occupation: "Pilates instructor",
     rating: 5,
     location: "Stellenbosch, SA",
     timeAgo: "5 days ago",
@@ -116,13 +119,18 @@ const entranceVariants: Record<Entrance, Variants> = {
 
 function StarRating({ rating }: { rating: number }) {
   return (
-    <div className="flex gap-0.5">
+    <div
+      className="flex gap-0.5"
+      role="img"
+      aria-label={`${rating} out of 5 stars`}
+    >
       {[...Array(5)].map((_, i) => (
         <Star
           key={i}
           size={12}
+          aria-hidden
           className={cn(
-            i < rating ? "fill-[#c9977a] text-[#c9977a]" : "text-[#c9977a]/25"
+            i < rating ? "fill-rose-gold text-rose-gold" : "text-rose-gold/25"
           )}
         />
       ))}
@@ -194,15 +202,11 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
               boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
             }}
           >
-            {/* Quote icon — ambient float (wrapper) + slight rotate on hover (inner) */}
+            {/* Quote icon — shared ambient float (wrapper) + slight rotate on
+                hover (inner). Float disabled for reduced motion. */}
             <motion.div
               className="mb-3 inline-flex"
-              animate={reducedMotion ? undefined : { y: [0, -5, 0] }}
-              transition={{
-                duration: 5,
-                ease: "easeInOut",
-                repeat: Infinity,
-              }}
+              {...(reducedMotion ? {} : floatAnimation)}
             >
               <span
                 className="flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-500 group-hover:rotate-[6deg]"
@@ -229,13 +233,13 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
               <p className="text-white text-sm font-semibold">
                 {testimonial.name}
               </p>
-              <p className="text-white/60 text-xs">{testimonial.role}</p>
+              <p className="text-white/60 text-xs">{testimonial.occupation}</p>
             </div>
 
             {/* Trust + product context */}
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-white/70 text-[10px]">
               <span className="inline-flex items-center gap-1">
-                <BadgeCheck size={12} className="text-[#c9977a]" />
+                <BadgeCheck size={12} className="text-rose-gold" />
                 Verified Buyer
               </span>
               <span className="inline-flex items-center gap-1">
@@ -277,14 +281,14 @@ export default function Testimonials() {
             variants={fadeIn}
             className="flex items-center justify-center gap-3 mb-6"
           >
-            <div className="h-px w-10 bg-[#c9977a]" />
-            <span className="label-caps text-[#c9977a]">In Their Words</span>
-            <div className="h-px w-10 bg-[#c9977a]" />
+            <div className="h-px w-10 bg-rose-gold" />
+            <span className="label-caps text-rose-gold">In Their Words</span>
+            <div className="h-px w-10 bg-rose-gold" />
           </motion.div>
 
           <motion.h2
             variants={fadeIn}
-            className="heading-display text-[#1e1814]"
+            className="heading-display text-ink"
             style={{
               fontFamily: "var(--font-cormorant)",
               fontSize: "clamp(2.5rem, 5vw, 4.5rem)",
@@ -317,12 +321,12 @@ export default function Testimonials() {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.5, duration: 0.8, ease: ease.cinematic }}
-          className="mt-16 md:mt-20 flex items-center justify-center gap-2 text-center text-[#1e1814]/60"
+          className="mt-16 md:mt-20 flex items-center justify-center gap-2 text-center text-ink/60"
         >
           <span className="text-sm">
             Loved these? See why hundreds more rate us five stars
           </span>
-          <ArrowRight size={15} className="text-[#c9977a]" />
+          <ArrowRight size={15} className="text-rose-gold" />
         </motion.div>
       </div>
     </section>

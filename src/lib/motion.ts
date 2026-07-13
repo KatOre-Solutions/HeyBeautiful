@@ -131,7 +131,7 @@ export const floatAnimation = {
     y: [0, -12, 0],
     transition: {
       duration: 6,
-      ease: "easeInOut",
+      ease: "easeInOut" as const,
       repeat: Infinity,
       repeatType: "loop" as const,
     },
