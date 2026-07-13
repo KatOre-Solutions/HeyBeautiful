@@ -91,7 +91,10 @@ export async function getFeaturedProducts(): Promise<ShopifyProduct[]> {
         "X-Shopify-Storefront-Access-Token": token,
       },
       body: JSON.stringify({ query: PRODUCTS_QUERY }),
-      next: { revalidate: 60, tags: ["products"] },
+      // Freshness comes from the "products" tag, which Shopify's webhook busts
+      // via /api/revalidate. The long window is only a safety net for a missed
+      // webhook, so it stays hourly rather than adding origin load.
+      next: { revalidate: 3600, tags: ["products"] },
     });
 
     if (!response.ok) {
