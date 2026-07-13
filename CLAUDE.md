@@ -4,8 +4,9 @@ Premium feminine-wellness ecommerce site. **Next.js 16** (App Router, Turbopack)
 + **Tailwind CSS** + **Framer Motion**. Auth is **Firebase** (Email/Password + Google + Apple)
 via `src/context/AuthContext.tsx`; cart and wishlist are React contexts
 (`src/context/CartContext.tsx`, `WishlistContext.tsx`). This is a **custom storefront for
-Shopify** — Shopify isn't wired up yet, so product/bundle data currently lives in
-`src/lib/products.ts` as placeholders (swap that one module for the Shopify Storefront API later).
+Shopify**: products come from the Storefront API via `src/lib/shopify.ts` (home featured grid,
+store grid, product detail). Bundles have no Shopify equivalent yet and remain placeholders in
+`src/lib/products.ts`.
 
 ## Branching strategy
 
@@ -36,9 +37,10 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
 
 ## Conventions
 
-- **Cart/wishlist item ids are namespaced strings** — `product:<n>` (e.g. `product:1`) and
-  `bundle:<slug>` (e.g. `bundle:glow`). Never bare numbers. Variant-specific cart lines append
-  `#<variantId>` (e.g. `product:1#60ct`). See `src/lib/products.ts` and `CartContext`.
+- **Cart/wishlist item ids are namespaced strings** — `product:<n>` (the numeric half of the
+  Shopify product gid) and `bundle:<slug>` (e.g. `bundle:glow`). Never bare numbers. Cart lines
+  append the Shopify variant id (e.g. `product:1#4567`); build them with `toCartItem()` from
+  `src/lib/shopify.ts` rather than by hand. See `CartContext`.
 - **Design tokens** (`tailwind.config.ts`): `rose-gold` (#c9977a, primary accent), `ink`
   (#1e1814, primary text), `cream` (#faf7f4), `parchment` (#f0ebe3). Prefer these over hex
   literals in JSX.
