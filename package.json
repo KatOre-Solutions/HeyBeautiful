@@ -6,7 +6,9 @@
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next dev",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "images:check": "node scripts/check-images.mjs",
+    "images:normalize": "node scripts/normalize-images.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
@@ -39,6 +41,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
     "postcss": "^8",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

@@ -127,7 +127,7 @@ export default function WishlistSidebar() {
               >
                 {/* Product image */}
                 <div
-                  className="relative w-[60px] h-[76px] rounded-xl overflow-hidden flex-shrink-0"
+                  className="relative w-[60px] aspect-[4/5] rounded-xl overflow-hidden flex-shrink-0"
                   style={{ background: "#f0ebe3" }}
                 >
                   <Image

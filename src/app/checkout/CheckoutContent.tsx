@@ -96,8 +96,8 @@ export default function CheckoutContent() {
                   className="flex items-center gap-4"
                 >
                   <div
-                    className="relative w-12 h-15 rounded-lg overflow-hidden flex-shrink-0"
-                    style={{ background: "#f0ebe3", height: "60px", width: "48px" }}
+                    className="relative w-12 aspect-[4/5] rounded-lg overflow-hidden flex-shrink-0"
+                    style={{ background: "#f0ebe3" }}
                   >
                     <Image
                       src={item.image}

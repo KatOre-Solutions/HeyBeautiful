@@ -82,11 +82,13 @@ export default function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
               <div className="relative w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/20 flex-shrink-0">
+                {/* w-9 h-9 = 36px */}
                 <Image
                   src="/images/logo.jpeg"
                   alt="Hey Beautiful"
                   fill
                   className="object-cover"
+                  sizes="36px"
                   priority
                 />
               </div>

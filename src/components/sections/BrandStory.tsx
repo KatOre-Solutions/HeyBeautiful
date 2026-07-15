@@ -43,13 +43,23 @@ export default function BrandStory() {
             className="relative"
           >
             {/* Main image */}
-            <div className="relative rounded-3xl overflow-hidden aspect-[4/5]">
+            <div className="relative rounded-3xl overflow-hidden aspect-[4/5] bg-parchment">
+              {/* Column width, derived from this section's grid. The grid is
+                  lg:grid-cols-2, so it is SINGLE-column until 1024 — the old
+                  "(max-width: 768px) 100vw, 50vw" claimed half-width from 769 up
+                  and left every tablet fetching a half-resolution, visibly soft
+                  image. Above 1504 the grid caps at max-w-7xl, so it stops at 592:
+                    <768   1 col, section-padding px-6 (2*24)   -> 100vw - 48
+                    <1024  1 col, px-12 (2*48)                  -> 100vw - 96
+                    <1280  2 cols, lg:gap-24 (96), px-20 (2*80) -> (100vw - 160 - 96)/2
+                    <1504  2 cols, gap 96, px-28 (2*112)        -> (100vw - 224 - 96)/2
+                    >=1504 caps at 1280                         -> (1280 - 96)/2 = 592 */}
               <Image
                 src="/images/model.jpeg"
                 alt="Hey Beautiful — strength meets glow"
                 fill
                 className="object-cover"
-                sizes="(max-width: 768px) 100vw, 50vw"
+                sizes="(max-width: 767px) calc(100vw - 48px), (max-width: 1023px) calc(100vw - 96px), (max-width: 1279px) calc(50vw - 128px), (max-width: 1503px) calc(50vw - 160px), 592px"
               />
               {/* Warm overlay */}
               <div
@@ -89,11 +99,13 @@ export default function BrandStory() {
               transition={{ delay: 0.7, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
               className="absolute -top-6 -left-6 md:-left-10 w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden shadow-luxury border border-white/60"
             >
+              {/* w-24 (96px), md:w-28 (112px) */}
               <Image
                 src="/images/product-mock-up.jpeg"
                 alt="Product"
                 fill
                 className="object-cover"
+                sizes="(min-width: 768px) 112px, 96px"
               />
             </motion.div>
           </motion.div>

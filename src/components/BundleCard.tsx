@@ -140,13 +140,13 @@ export default function BundleCard({
             {bundle.products.map((img, i) => (
               <div
                 key={i}
-                className="w-14 h-14 rounded-xl overflow-hidden border-2 border-white/70 shadow-soft flex-shrink-0"
+                className="relative w-14 aspect-[4/5] rounded-xl overflow-hidden border-2 border-white/70 shadow-soft flex-shrink-0"
                 style={{
                   transform: `rotate(${i % 2 === 0 ? "-3deg" : "3deg"})`,
                   boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
                 }}
               >
-                <Image src={img} alt="" fill className="object-cover" />
+                <Image src={img} alt="" fill className="object-cover" sizes="56px" />
               </div>
             ))}
           </div>

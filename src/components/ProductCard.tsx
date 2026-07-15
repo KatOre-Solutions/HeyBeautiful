@@ -87,7 +87,17 @@ function WishlistHeart({ product }: { product: Product }) {
   );
 }
 
-export default function ProductCard({ product }: { product: Product }) {
+/**
+ * `priority` should be set by the grid for cards that land above the fold — the
+ * card can't know its own position. See StoreContent.
+ */
+export default function ProductCard({
+  product,
+  priority = false,
+}: {
+  product: Product;
+  priority?: boolean;
+}) {
   const [hovered, setHovered] = useState(false);
   const { addItem } = useCart();
 
@@ -119,18 +129,25 @@ export default function ProductCard({ product }: { product: Product }) {
       />
 
       {/* Image container */}
-      <div className="relative aspect-[3/4] overflow-hidden bg-[#f0ebe3]">
+      <div className="relative aspect-[4/5] overflow-hidden bg-[#f0ebe3]">
         <motion.div
           className="absolute inset-0"
           animate={{ scale: hovered ? 1.06 : 1 }}
           transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
+          {/* Column width, derived from the StoreContent grid:
+                <768   2 cols, gap-4  (16), section-padding px-6  (2*24)  -> (100vw - 48 - 16)/2
+                <1024  3 cols, gap-6  (24), px-12 (2*48)                  -> (100vw - 96 - 48)/3
+                <1280  4 cols, gap-6  (24), px-20 (2*80)                  -> (100vw - 160 - 72)/4
+                <1504  4 cols, gap-6  (24), px-28 (2*112)                 -> (100vw - 224 - 72)/4
+                >=1504 grid caps at max-w-7xl (1280)                      -> (1280 - 72)/4 = 302 */}
           <Image
             src={product.image}
             alt={product.name}
             fill
+            priority={priority}
             className="object-cover"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            sizes="(max-width: 767px) calc(50vw - 32px), (max-width: 1023px) calc(33.33vw - 48px), (max-width: 1279px) calc(25vw - 58px), (max-width: 1503px) calc(25vw - 74px), 302px"
           />
         </motion.div>
 

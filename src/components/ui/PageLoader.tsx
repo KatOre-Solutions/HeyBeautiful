@@ -75,11 +75,13 @@ export default function PageLoader() {
               delay: 1.1,
             }}
           >
+            {/* Intrinsic size of the source, which the h-auto class uses to derive
+                the layout box. Renders at 140-180px; the source is 768px (DPR4). */}
             <Image
               src="/images/logo-hearts-white.png"
               alt=""
-              width={2956}
-              height={2817}
+              width={768}
+              height={732}
               priority
               sizes="(min-width: 768px) 180px, 140px"
               className="w-[140px] md:w-[180px] h-auto select-none"

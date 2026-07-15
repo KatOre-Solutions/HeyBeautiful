@@ -49,11 +49,13 @@ export default function Footer() {
             {/* Logo */}
             <div className="flex items-center gap-3 mb-6">
               <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                {/* w-10 h-10 = 40px */}
                 <Image
                   src="/images/logo.jpeg"
                   alt="Hey Beautiful"
                   fill
                   className="object-cover"
+                  sizes="40px"
                 />
               </div>
               <span
