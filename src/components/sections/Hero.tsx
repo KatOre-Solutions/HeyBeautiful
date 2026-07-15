@@ -2,11 +2,38 @@
 
 import { useRef, useEffect } from "react";
 import { preload } from "react-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { ArrowDown, Sparkles } from "lucide-react";
 import { heroEntrance, staggerContainer, fadeUp, shimmerLine, ease } from "@/lib/motion";
+import { shouldLoadHeroVideo } from "@/lib/network";
 
 const HERO_VIDEO_SRC = "/video/hero-video.mp4";
+const HERO_POSTER_SRC = "/video/hero-poster.webp";
+
+/**
+ * Reduced-motion twins of the entrance variants.
+ *
+ * `hidden` is reused by reference and must stay identical to the original:
+ * framer-motion serialises it into the SSR'd style, and useReducedMotion() is
+ * null server-side, so a reduced-motion-dependent `hidden` would mismatch on
+ * hydration and remount the <video> (see HomeHero's note on remounting).
+ * Only `transition` differs — it is runtime-only and never serialised.
+ *
+ * Opacity still fades; it's movement that prefers-reduced-motion is about.
+ */
+const reducedTransition = {
+  duration: 0.4,
+  ease: ease.out,
+  y: { duration: 0 },
+  filter: { duration: 0 },
+};
+const withReducedTransition = (v: typeof fadeUp) => ({
+  hidden: v.hidden,
+  visible: { ...v.visible, transition: reducedTransition },
+});
+const fadeUpReduced = withReducedTransition(fadeUp);
+const heroEntranceReduced = withReducedTransition(heroEntrance);
+const shimmerLineReduced = withReducedTransition(shimmerLine);
 
 interface HeroProps {
   /** Fired once when the background video has decoded its first frame (or errored). */
@@ -16,17 +43,15 @@ interface HeroProps {
 }
 
 export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) {
-  // Hoists <link rel="preload" as="video"> into the head during SSR so the
-  // browser starts the download with the initial HTML, before hydration.
-  // High priority: the page reveal blocks on this video.
-  preload(HERO_VIDEO_SRC, {
-    as: "video",
-    type: "video/mp4",
-    fetchPriority: "high",
-  });
+  // Preloads the poster, not the video: the poster is what paints first, and a
+  // <link> already flushed into the SSR'd head cannot be withdrawn — preloading
+  // the video would download it even for the Save-Data/reduced-motion paths that
+  // deliberately skip it.
+  preload(HERO_POSTER_SRC, { as: "image", fetchPriority: "high" });
 
   const ref = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const reducedMotion = useReducedMotion();
 
   const onVideoReadyRef = useRef(onVideoReady);
   onVideoReadyRef.current = onVideoReady;
@@ -36,9 +61,11 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
     offset: ["start start", "end start"],
   });
 
-  const parallaxY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-  const overlayOpacity = useTransform(scrollYProgress, [0, 0.6], [0, 0.4]);
-  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
+  // Reduced motion flattens the output range rather than dropping the transform:
+  // both branches emit the same value at scroll 0, so SSR and hydration agree.
+  const parallaxY = useTransform(scrollYProgress, [0, 1], ["0%", reducedMotion ? "0%" : "30%"]);
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.6], [0, reducedMotion ? 0 : 0.4]);
+  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", reducedMotion ? "0%" : "15%"]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -54,6 +81,28 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
       paintDelay = setTimeout(() => onVideoReadyRef.current?.(), 250);
     };
 
+    // A background tab pauses playback the instant it starts, and dropping
+    // autoPlay means the browser no longer retries on our behalf — without this,
+    // a page opened in a background tab would show a frozen first frame forever.
+    const tryPlay = () => void video.play().catch(() => {});
+    const onVisible = () => {
+      if (!document.hidden) tryPlay();
+    };
+
+    const cleanup = () => {
+      video.removeEventListener("loadeddata", ready);
+      video.removeEventListener("error", ready);
+      document.removeEventListener("visibilitychange", onVisible);
+      if (paintDelay) clearTimeout(paintDelay);
+    };
+
+    // Skip the download entirely and stay on the poster. `ready()` must still
+    // fire or the loader waits out its full fallback with nothing coming.
+    if (reducedMotion || !shouldLoadHeroVideo()) {
+      ready();
+      return cleanup;
+    }
+
     // loadeddata (HAVE_CURRENT_DATA) over canplaythrough — the latter is
     // unreliable on Safari/iOS and slow networks; the video keeps buffering
     // while it plays, unnoticed. readyState covers the already-cached case.
@@ -64,14 +113,18 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
       video.addEventListener("error", ready, { once: true });
     }
 
-    video.play().catch(() => {});
+    // load() explicitly: the element is preload="none" with no autoPlay, and the
+    // spec only says a UA *may* re-fetch when `preload` changes. Called before
+    // play() so the fetch doesn't depend on autoplay permission — iOS Low Power
+    // Mode rejects play(), and we still want the first frame to arrive.
+    video.load();
+    tryPlay();
+    document.addEventListener("visibilitychange", onVisible);
 
-    return () => {
-      video.removeEventListener("loadeddata", ready);
-      video.removeEventListener("error", ready);
-      if (paintDelay) clearTimeout(paintDelay);
-    };
-  }, []);
+    return cleanup;
+    // reducedMotion is read once at first render and never updates, so this
+    // still runs exactly once — the video must not be re-loaded on re-render.
+  }, [reducedMotion]);
 
   return (
     <section
@@ -83,13 +136,18 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
         className="absolute inset-0 w-full h-full"
         style={{ y: parallaxY }}
       >
+        {/* No autoPlay, and preload="none": autoPlay starts the fetch regardless
+            of the preload hint, which would defeat the reduced-motion and
+            Save-Data paths. The effect above drives load()/play() instead.
+            The poster carries first paint until the first frame decodes. */}
         <video
           ref={videoRef}
-          autoPlay
           loop
           muted
           playsInline
-          preload="auto"
+          preload="none"
+          poster={HERO_POSTER_SRC}
+          aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ transform: "scale(1.05)" }}
         >
@@ -135,7 +193,7 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
         >
           {/* Label */}
           <motion.div
-            variants={fadeUp}
+            variants={reducedMotion ? fadeUpReduced : fadeUp}
             className="flex items-center justify-center gap-3 mb-8"
           >
             <div className="h-px w-10 bg-[#c9977a]/70" />
@@ -147,7 +205,7 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
 
           {/* Main heading */}
           <motion.h1
-            variants={heroEntrance}
+            variants={reducedMotion ? heroEntranceReduced : heroEntrance}
             className="heading-display text-white mb-6"
             style={{
               fontFamily: "var(--font-cormorant)",
@@ -166,7 +224,7 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
 
           {/* Deco line */}
           <motion.div
-            variants={shimmerLine}
+            variants={reducedMotion ? shimmerLineReduced : shimmerLine}
             className="flex justify-center mb-8"
           >
             <div className="h-px w-20 bg-[#c9977a]/60 origin-center" />
@@ -174,7 +232,7 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
 
           {/* Sub copy */}
           <motion.p
-            variants={fadeUp}
+            variants={reducedMotion ? fadeUpReduced : fadeUp}
             className="text-white/75 mb-12 max-w-lg mx-auto leading-relaxed"
             style={{
               fontFamily: "var(--font-manrope)",
@@ -189,7 +247,7 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
 
           {/* CTA buttons */}
           <motion.div
-            variants={fadeUp}
+            variants={reducedMotion ? fadeUpReduced : fadeUp}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <a
@@ -217,7 +275,7 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
         transition={{ delay: 2, duration: 1, ease: ease.cinematic }}
       >
         <motion.div
-          animate={{ y: [0, 8, 0] }}
+          animate={reducedMotion ? { y: 0 } : { y: [0, 8, 0] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         >
           <ArrowDown size={16} className="text-white/50" />

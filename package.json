@@ -6,7 +6,9 @@
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next dev",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "video:normalize": "node scripts/normalize-video.mjs",
+    "video:check": "node scripts/check-video.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
