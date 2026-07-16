@@ -79,18 +79,31 @@ function checkProductAspect(file, src) {
 /**
  * 3. Only the intended cards get `priority`.
  *
- * The store grid eager-loads its first row (its LCP). FeaturedProducts must NOT —
- * it sits below a <video> hero that already preloads itself, so preloading there
- * would contend with the real LCP.
+ * The store grid eager-loads its first row (its LCP). The homepage featured grid
+ * must NOT — it sits below a <video> hero that already preloads itself, so
+ * preloading there would contend with the real LCP.
+ *
+ * That grid is FeaturedProducts -> ShopifyProductCard, and ShopifyProductCard is
+ * where an <Image priority> could actually be introduced. FeaturedProducts only
+ * delegates to it and never names `priority`, so asserting against FeaturedProducts
+ * alone is vacuous — we scan the Image tags of both files instead.
  */
 function checkPriority(file, src) {
   if (/StoreContent\.tsx$/.test(file) && !src.includes(EAGER_STORE_CARDS)) {
     fail(file, 1, `store grid must eager-load its first row via \`${EAGER_STORE_CARDS}\``);
   }
-  if (/FeaturedProducts\.tsx$/.test(file)) {
-    const p = src.search(/\bpriority\b/);
-    if (p !== -1) {
-      fail(file, lineAt(src, p), "FeaturedProducts must not set `priority` — the homepage LCP is the hero video");
+  if (/(?:FeaturedProducts|ShopifyProductCard)\.tsx$/.test(file)) {
+    for (const m of src.matchAll(/<Image\b[\s\S]*?\/>/g)) {
+      const tag = m[0];
+      // `priority`, `priority={true}`, or `priority={<expr>}` all eager-load;
+      // only an explicit `priority={false}` opts out. A `priority` in prose (e.g.
+      // the "no priority here on purpose" comment) sits outside the tag and is
+      // never scanned.
+      const setsPriority = /(?:^|\s)priority(?:\s|=|\/?>)/.test(tag);
+      const explicitlyOff = /\bpriority\s*=\s*\{\s*false\s*\}/.test(tag);
+      if (setsPriority && !explicitlyOff) {
+        fail(file, lineAt(src, m.index), "homepage featured <Image> must not set `priority` — the LCP is the hero video");
+      }
     }
   }
 }

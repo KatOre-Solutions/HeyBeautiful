@@ -356,7 +356,7 @@ async function main() {
   );
 
   if (failed) {
-    console.error("\nFAIL: a crop would clip its product. Re-tune TRIM_THRESHOLD or the target.");
+    console.error("\nFAIL: a crop would clip its product. Re-tune OBJECT_THRESHOLD / MAX_CENTRE_SKEW or the target.");
     process.exit(1);
   }
   if (!write) console.log("\n  Dry run — nothing written. Re-run with --write to apply.");
