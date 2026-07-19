@@ -106,13 +106,21 @@ export default function ProductDetailContent({
               className="relative aspect-[4/5] rounded-3xl overflow-hidden"
               style={{ background: "#f0ebe3" }}
             >
+              {/* Column width, derived from this page's grid. It's lg:grid-cols-2,
+                  so it stays single-column below 1024 — and above 1504 the grid
+                  caps at max-w-7xl, so the column stops at 608 rather than 50vw:
+                    <768   1 col, section-padding px-6 (2*24)   -> 100vw - 48
+                    <1024  1 col, px-12 (2*48)                  -> 100vw - 96
+                    <1280  2 cols, lg:gap-16 (64), px-20 (2*80) -> (100vw - 160 - 64)/2
+                    <1504  2 cols, gap 64, px-28 (2*112)        -> (100vw - 224 - 64)/2
+                    >=1504 caps at 1280                         -> (1280 - 64)/2 = 608 */}
               <Image
                 src={activeImage}
                 alt={product.name}
                 fill
                 priority
                 className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
+                sizes="(max-width: 767px) calc(100vw - 48px), (max-width: 1023px) calc(100vw - 96px), (max-width: 1279px) calc(50vw - 112px), (max-width: 1503px) calc(50vw - 144px), 608px"
               />
             </motion.div>
 
@@ -123,7 +131,7 @@ export default function ProductDetailContent({
                     key={img}
                     onClick={() => setActiveImage(img)}
                     className={cn(
-                      "relative w-20 h-24 rounded-xl overflow-hidden flex-shrink-0 transition-all",
+                      "relative w-20 aspect-[4/5] rounded-xl overflow-hidden flex-shrink-0 transition-all",
                       activeImage === img
                         ? "ring-2 ring-rose-gold ring-offset-2 ring-offset-[#faf7f4]"
                         : "opacity-70 hover:opacity-100"

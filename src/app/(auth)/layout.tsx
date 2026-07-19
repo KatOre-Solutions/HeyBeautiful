@@ -10,12 +10,15 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         className="hidden lg:flex lg:w-[44%] fixed inset-y-0 left-0 flex-col items-center justify-between p-12 overflow-hidden"
         style={{ background: "linear-gradient(160deg, #1e1814 0%, #2d1f1a 100%)" }}
       >
-        {/* Background image */}
+        {/* Background image.
+            Deliberately not `priority`: the panel is `hidden lg:flex`, but priority
+            emits an unconditional <link rel=preload> into <head>, so every mobile
+            visitor was downloading this decorative image for a display:none element.
+            The panel only exists at >=1024, where this loads normally anyway. */}
         <Image
           src="/images/product-model.jpeg"
           alt=""
           fill
-          priority
           className="object-cover opacity-40"
           style={{ mixBlendMode: "luminosity" }}
           sizes="44vw"
@@ -35,11 +38,13 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           className="relative z-10 self-start flex items-center gap-3"
         >
           <div className="relative w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/20">
+            {/* w-9 h-9 = 36px */}
             <Image
               src="/images/logo.jpeg"
               alt="Hey Beautiful"
               fill
               className="object-cover"
+              sizes="36px"
             />
           </div>
           <span
