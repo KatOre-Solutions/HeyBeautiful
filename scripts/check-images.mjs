@@ -1,5 +1,7 @@
 // Guards the image-delivery invariants established in issue #13.
-// Runs as part of `npm run lint`, or on its own via `npm run images:check`.
+// Run manually via `npm run images:check`. NOT wired into `npm run lint` —
+// see PR #50 / issue #13 (and #52) for why: `next lint` is removed in Next 16
+// and there's no ESLint config yet, so `lint` is currently broken on `main`.
 //
 // HOW THIS WORKS, AND WHAT IT WON'T CATCH
 //
