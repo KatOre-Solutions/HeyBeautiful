@@ -214,7 +214,7 @@ export default function Newsletter() {
                     key={i}
                     className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-white/40"
                   >
-                    <Image src={src} alt="" fill className="object-cover" />
+                    <Image src={src} alt="" fill className="object-cover" sizes="32px" />
                   </div>
                 )
               )}

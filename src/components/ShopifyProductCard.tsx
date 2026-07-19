@@ -137,7 +137,7 @@ export default function ShopifyProductCard({ product }: { product: ShopifyProduc
       )}
 
       {/* Image container */}
-      <div className="relative aspect-[3/4] overflow-hidden bg-[#f0ebe3]">
+      <div className="relative aspect-[4/5] overflow-hidden bg-[#f0ebe3]">
         {product.placeholder ? (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center gap-3"
@@ -154,12 +154,21 @@ export default function ShopifyProductCard({ product }: { product: ShopifyProduc
             animate={{ scale: hovered ? 1.06 : 1 }}
             transition={{ duration: 0.8, ease: ease.luxury }}
           >
+            {/* Column width, derived from the FeaturedProducts grid. Note this is a
+                5-col grid at lg, not 4 like the store — the old 25vw was too wide:
+                  <768   2 cols, gap-4 (16), section-padding px-6  (2*24) -> (100vw - 48 - 16)/2
+                  <1024  3 cols, gap-6 (24), px-12 (2*48)                 -> (100vw - 96 - 48)/3
+                  <1280  5 cols, gap-6 (24), px-20 (2*80)                 -> (100vw - 160 - 96)/5
+                  <1504  5 cols, gap-6 (24), px-28 (2*112)                -> (100vw - 224 - 96)/5
+                  >=1504 grid caps at max-w-7xl (1280)                    -> (1280 - 96)/5 = 237
+                No `priority` here on purpose: this grid is the third section of the
+                homepage, below a <video> hero that already preloads itself. */}
             <Image
               src={product.image}
               alt={product.name}
               fill
               className="object-cover"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              sizes="(max-width: 767px) calc(50vw - 32px), (max-width: 1023px) calc(33.33vw - 48px), (max-width: 1279px) calc(20vw - 51px), (max-width: 1503px) calc(20vw - 64px), 237px"
             />
           </motion.div>
         )}

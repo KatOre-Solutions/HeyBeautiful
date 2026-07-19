@@ -194,11 +194,13 @@ export default function Reviews() {
                   className="flex items-center gap-4"
                 >
                   <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-[#c9977a]/30">
+                    {/* w-12 h-12 = 48px */}
                     <Image
                       src={active.avatar}
                       alt={active.name}
                       fill
                       className="object-cover"
+                      sizes="48px"
                     />
                   </div>
                   <div>
@@ -263,7 +265,7 @@ export default function Reviews() {
               >
                 <div className="flex items-center gap-3">
                   <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-[#c9977a]/20">
-                    <Image src={review.avatar} alt={review.name} fill className="object-cover" />
+                    <Image src={review.avatar} alt={review.name} fill className="object-cover" sizes="36px" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">

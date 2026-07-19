@@ -92,7 +92,7 @@ export default function CartNotification() {
               {/* Product row */}
               <div className="flex items-center gap-3 mb-3">
                 <div
-                  className="relative w-11 h-14 rounded-lg overflow-hidden flex-shrink-0"
+                  className="relative w-11 aspect-[4/5] rounded-lg overflow-hidden flex-shrink-0"
                   style={{ background: "#f0ebe3" }}
                 >
                   <Image

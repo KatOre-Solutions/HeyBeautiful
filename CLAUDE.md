@@ -7,6 +7,83 @@ via `src/context/AuthContext.tsx`; cart and wishlist are React contexts
 Shopify** — Shopify isn't wired up yet, so product/bundle data currently lives in
 `src/lib/products.ts` as placeholders (swap that one module for the Shopify Storefront API later).
 
+## Brand & design system
+
+**Positioning** — premium feminine-wellness, "performance meets femininity." Editorial, cinematic,
+glassy, warm. Think luxury beauty house, not clinical supplement brand.
+
+- **Name / tagline**: "Hey Beautiful — Fuel Your Strength. Keep Your Glow." (site `<title>` and OG).
+- **Voice**: aspirational, warm, confident, unfussy. Sentence-case UI copy; reserve ALL-CAPS for
+  small `label-caps` eyebrows/labels and button text (via the `.btn-*` utilities), never body copy.
+- **Feel**: soft warmth, generous whitespace, slow reveals, glassmorphism, subtle noise/shimmer.
+  Avoid hard shadows, pure `#000`/`#fff` fills, and sharp corners — default to warm tones and
+  rounded radii (`--radius: 1rem`; cards use `rounded-2xl`).
+
+### Typography
+
+Two Google fonts loaded in `src/app/layout.tsx` and exposed as CSS variables + Tailwind families.
+Never import other font families or hardcode `font-family` — use these.
+
+| Role | Font | CSS var | Tailwind | Notes |
+| --- | --- | --- | --- | --- |
+| Display / headings | Cormorant Garamond (serif, 300–700, incl. italic) | `--font-cormorant` / `--font-display` | `font-display` | Light weights; tight tracking. Use `.heading-display` (300) or `.heading-serif` (400). |
+| Body / UI | Manrope (sans, 300–800) | `--font-manrope` / `--font-body` | `font-body` | Default body font (set on `<body>`). |
+
+- Small uppercase labels/eyebrows: use `.label-caps` (Manrope 500, 0.6875rem, 0.18em tracking).
+- Prefer the shared heading utilities over ad-hoc `font-*` + tracking combos.
+
+### Color palette
+
+Defined in `tailwind.config.ts`. **Prefer named tokens over hex literals in JSX.** The core brand
+tokens are also mirrored as semantic CSS variables in `globals.css` (`:root`).
+
+**Primary brand accent** — `rose-gold` `#c9977a` (Tailwind `rose-gold`, CSS `--primary`/`--ring`).
+Its variants: `rose-light` `#f5ddd5`, `rose-dark` `#8b5e52`.
+
+**Neutrals / surfaces**
+- `ink` `#1e1814` — primary text/headings (site-wide), also `--foreground`.
+- `cream` `#faf7f4` — page background (`--background`, set on `<body>`).
+- `parchment` `#f0ebe3` — secondary surface / scrollbar track.
+
+**Extended scales** (50–900 each): `blush` (warm terracotta, base `#cc6b52`),
+`sand` (warm neutral, base `#a8845d`), `royal` (blue accent, base `#4361ee` = `--accent`).
+Use these for tints/gradients and the secondary blue accent.
+
+**Semantic CSS variables** (space-separated RGB in `:root`, for `rgb(var(--x))` usage):
+`--background`, `--foreground`, `--card`, `--popover`, `--primary` `201 151 122`,
+`--secondary`, `--muted`, `--muted-foreground` `120 100 88`, `--accent` `67 97 238`,
+`--border`/`--input` `232 220 208`, `--ring`. `--radius: 1rem`.
+
+Selection color and custom scrollbar are styled to `rose-gold`/`parchment` in `globals.css` base.
+
+### Depth, glass & texture
+
+- **Shadows** (`boxShadow`): `soft`, `glass` / `glass-hover`, `luxury` / `luxury-hover`, `glow`
+  (rose-gold halo). Prefer these over inline `shadow-[…]`.
+- **Backdrop blur**: `backdrop-blur-xs|glass|heavy` (2 / 12 / 24px). Glass surfaces use the
+  component classes `.glass`, `.glass-warm`, `.glass-dark`, `.glass-card` (rounded, hover-lit).
+- **Gradients** (`backgroundImage`): `glass-gradient`, `warm-glow` (hero/section wash),
+  `hero-overlay` (image darkening), `card-shimmer`. Plus `.gradient-text` (rose-gold→dark)
+  and `.noise-overlay` for cinematic film grain.
+
+### Buttons & shared utilities
+
+Buttons are composed from `.btn-luxury` (pill, uppercase, tracked): use `.btn-primary`
+(rose-gold fill), `.btn-outline` (rose-gold outline), or `.btn-glass`. Other shared classes:
+`.section-padding` (responsive horizontal), `.section-py` (responsive vertical), `.deco-line`,
+`.product-card`, `.text-balance`, `.shimmer-hover`. See `globals.css` before adding new CSS.
+
+### Motion
+
+Import variants + easing from `src/lib/motion.ts` — never inline bezier arrays. Easing presets:
+`ease.luxury` `[0.25,0.46,0.45,0.94]`, `ease.cinematic` `[0.16,1,0.3,1]` (default reveal),
+`ease.soft`, `ease.out`. Variants: `fadeUp` (standard entrance), `fadeIn`, `slideInLeft/Right`,
+`scaleIn`, `staggerContainer` / `staggerContainerSlow`, `textReveal`, `heroEntrance`, `cardHover`,
+`glassHover`, `floatAnimation`, `shimmerLine`. Tailwind mirrors these as `transitionTimingFunction`
+(`luxury`/`cinematic`/`soft`), extended `transitionDuration` (400–1200ms), and keyframe animations
+(`float`, `float-delayed`, `shimmer`, `fade-up`, `pulse-soft`). Reveals are slow and blur-in —
+keep entrances in the 0.8–1.2s range to match the cinematic feel.
+
 ## Branching strategy
 
 ```
@@ -39,11 +116,8 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
 - **Cart/wishlist item ids are namespaced strings** — `product:<n>` (e.g. `product:1`) and
   `bundle:<slug>` (e.g. `bundle:glow`). Never bare numbers. Variant-specific cart lines append
   `#<variantId>` (e.g. `product:1#60ct`). See `src/lib/products.ts` and `CartContext`.
-- **Design tokens** (`tailwind.config.ts`): `rose-gold` (#c9977a, primary accent), `ink`
-  (#1e1814, primary text), `cream` (#faf7f4), `parchment` (#f0ebe3). Prefer these over hex
-  literals in JSX.
-- **Motion**: import variants + easing from `src/lib/motion.ts` (`fadeUp`, `staggerContainer`,
-  `ease.cinematic`, …) rather than inlining `[0.16, 1, 0.3, 1]`.
+- **Design tokens, colors, fonts, and motion** — see [Brand & design system](#brand--design-system)
+  above. Prefer named tokens/utilities over hex literals and inlined bezier arrays.
 - **Shared CSS utilities** (`src/app/globals.css`): `section-py`, `section-padding`,
   `label-caps`, `heading-display`, `heading-serif`, `btn-outline`, `glass-card`, `product-card`.
 - **Page pattern**: a top-level route is a server `page.tsx` (`<Navbar /> … <Footer />` +

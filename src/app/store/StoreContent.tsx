@@ -59,8 +59,11 @@ export default function StoreContent() {
           animate="visible"
           className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
         >
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {/* The first row is above the fold on desktop (lg:grid-cols-4); on mobile
+              grid-cols-2 makes it the first two rows, also at the fold. Eager-load
+              those so the LCP image isn't lazy; the rest stay lazy. */}
+          {products.map((product, index) => (
+            <ProductCard key={product.id} product={product} priority={index < 4} />
           ))}
         </motion.div>
       </section>
