@@ -26,6 +26,7 @@ const reducedTransition = {
   ease: ease.out,
   y: { duration: 0 },
   filter: { duration: 0 },
+  scaleX: { duration: 0 },
 };
 const withReducedTransition = (v: typeof fadeUp) => ({
   hidden: v.hidden,
