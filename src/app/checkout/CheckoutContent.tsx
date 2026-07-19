@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,13 +15,27 @@ export default function CheckoutContent() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { items, totalPrice } = useCart();
+  // One-shot guard: React Strict Mode double-invokes effects in dev, and we never
+  // want two navigations racing.
+  const redirected = useRef(false);
 
-  // Same stale-cookie guard as the account page — proxy only checks cookie presence.
+  // Two client-side guards the edge proxy can't do (it only sees the presence
+  // cookie): (1) stale-cookie / dead session → login; (2) unverified email →
+  // verify-email, preserving the full destination (incl. query, e.g. a coupon)
+  // so the user lands back here once verified. See #22.
   useEffect(() => {
-    if (!loading && !user) router.replace("/login?from=checkout");
+    if (loading || redirected.current) return;
+    if (!user) {
+      redirected.current = true;
+      router.replace("/login?from=checkout");
+    } else if (!user.emailVerified) {
+      redirected.current = true;
+      const dest = window.location.pathname + window.location.search;
+      router.replace(`/verify-email?from=${encodeURIComponent(dest)}`);
+    }
   }, [loading, user, router]);
 
-  if (loading || !user) {
+  if (loading || !user || !user.emailVerified) {
     return (
       <section
         className="min-h-screen flex items-center justify-center"

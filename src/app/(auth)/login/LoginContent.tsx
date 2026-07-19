@@ -12,15 +12,7 @@ import FloatingInput from "@/components/auth/FloatingInput";
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons";
 import AuthErrorToast, { getAuthErrorMessage } from "@/components/auth/AuthErrorToast";
 import { REDIRECT_KEY } from "@/lib/constants";
-
-function resolveDestination(from: string | null): string {
-  if (!from) return "/account";
-  if (from === "checkout") return "/checkout";
-  // Only allow same-origin absolute paths. Reject protocol-relative ("//evil.com")
-  // and any other value to avoid an open redirect.
-  if (from.startsWith("/") && !from.startsWith("//") && !from.startsWith("/\\")) return from;
-  return "/account";
-}
+import { resolveDestination } from "@/lib/redirect";
 
 function LoginForm() {
   const router = useRouter();
