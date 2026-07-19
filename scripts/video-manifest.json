@@ -1,0 +1,10 @@
+{
+  "_comment": "Written by scripts/normalize-video.mjs. Verified by scripts/check-video.mjs. Do not hand-edit.",
+  "video": "public/video/hero-video.mp4",
+  "poster": "public/video/hero-poster.webp",
+  "videoSha256": "e7ba13d515ca348bbd54bfab83c4d6ec681f92150dcd167ec948185323635379",
+  "videoBytes": 1129500,
+  "posterBytes": 43956,
+  "crf": 28,
+  "preset": "slow"
+}

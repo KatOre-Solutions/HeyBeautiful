@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "images:check": "node scripts/check-images.mjs",
-    "images:normalize": "node scripts/normalize-images.mjs"
+    "images:normalize": "node scripts/normalize-images.mjs",
+    "video:normalize": "node scripts/normalize-video.mjs",
+    "video:check": "node scripts/check-video.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
