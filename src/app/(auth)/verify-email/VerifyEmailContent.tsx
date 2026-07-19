@@ -21,6 +21,11 @@ function VerifyEmail() {
   // Where to send the user once verified — the checkout guard passes ?from=/checkout…;
   // resolveDestination falls back to /account and blocks open redirects.
   const dest = resolveDestination(params.get("from"));
+  // /checkout is *enforced* (unlike advisory /account), so a manual "continue"
+  // there would just bounce off the checkout guard back to this page while
+  // unverified — and the verified case is already handled by the auto-redirect
+  // below. So the manual CTA only makes sense for the advisory destination.
+  const showManualContinue = !dest.startsWith("/checkout");
   const { user, loading, sendVerification, reloadUser, signOut } = useAuth();
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
@@ -183,23 +188,23 @@ function VerifyEmail() {
             </AnimatePresence>
           </motion.div>
 
-          <motion.button
-            variants={fadeUp}
-            type="button"
-            onClick={() => router.push(dest)}
-            whileHover={{ scale: 1.015 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full py-4 rounded-full text-white font-semibold text-[11px] tracking-[0.13em] uppercase"
-            style={{
-              background: "#c9977a",
-              fontFamily: "var(--font-manrope)",
-              boxShadow: "0 6px 24px rgba(201,151,122,0.38)",
-            }}
-          >
-            {dest.startsWith("/checkout")
-              ? "Continue to Checkout"
-              : "Continue to My Account"}
-          </motion.button>
+          {showManualContinue && (
+            <motion.button
+              variants={fadeUp}
+              type="button"
+              onClick={() => router.push(dest)}
+              whileHover={{ scale: 1.015 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full py-4 rounded-full text-white font-semibold text-[11px] tracking-[0.13em] uppercase"
+              style={{
+                background: "#c9977a",
+                fontFamily: "var(--font-manrope)",
+                boxShadow: "0 6px 24px rgba(201,151,122,0.38)",
+              }}
+            >
+              Continue to My Account
+            </motion.button>
+          )}
 
           <motion.button
             variants={fadeUp}
