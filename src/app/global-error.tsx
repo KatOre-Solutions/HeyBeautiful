@@ -5,7 +5,7 @@
 // InvariantError during prerender on Next 16 + Turbopack. global-error must
 // render its own <html>/<body> because it replaces the root layout.
 export default function GlobalError({
-  error,
+  error: _error,
   reset,
 }: {
   error: Error & { digest?: string };

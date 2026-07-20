@@ -54,8 +54,15 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
   const videoRef = useRef<HTMLVideoElement>(null);
   const reducedMotion = useReducedMotion();
 
+  // Latest-ref pattern: keep the callback current without adding it to the
+  // video-ready effect's deps (which would re-arm the listener each render).
+  // Written in an effect rather than during render so refs aren't mutated in
+  // the render phase; the ref is only read from an async handler, so the
+  // one-commit lag is immaterial.
   const onVideoReadyRef = useRef(onVideoReady);
-  onVideoReadyRef.current = onVideoReady;
+  useEffect(() => {
+    onVideoReadyRef.current = onVideoReady;
+  });
 
   const { scrollYProgress } = useScroll({
     target: ref,

@@ -4,7 +4,7 @@ import { useRef } from "react";
 import Image from "next/image";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { fadeUp, staggerContainer, slideInLeft, slideInRight } from "@/lib/motion";
+import { fadeUp, staggerContainer } from "@/lib/motion";
 
 const editorialMoments = [
   {
