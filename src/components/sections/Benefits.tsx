@@ -159,8 +159,8 @@ export default function Benefits() {
             animate={isInView ? "visible" : "hidden"}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
           >
-            {benefits.map((benefit, index) => (
-              <BenefitCard key={benefit.title} benefit={benefit} index={index} />
+            {benefits.map((benefit) => (
+              <BenefitCard key={benefit.title} benefit={benefit} />
             ))}
           </motion.div>
         </div>
@@ -171,10 +171,8 @@ export default function Benefits() {
 
 function BenefitCard({
   benefit,
-  index,
 }: {
   benefit: (typeof benefits)[0];
-  index: number;
 }) {
   const Icon = benefit.icon;
 

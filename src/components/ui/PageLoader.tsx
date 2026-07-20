@@ -19,6 +19,9 @@ export default function PageLoader() {
   // during SSR (avoids a hydration mismatch).
   const [mounted, setMounted] = useState(false);
 
+  // Client-only mount flag to gate the portal past SSR; setState-in-effect is
+  // the canonical hydration guard here.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
   return (
