@@ -25,9 +25,12 @@ let shownThisSpaSession = false;
 // Runs during HTML parse, before first paint — hides the SSR'd loader on
 // repeat visits so it never flashes. Injects a <style> rather than touching
 // React-managed attributes (a class on <html> triggers a hydration mismatch).
-const skipScript = `try{if(sessionStorage.getItem("${LOADER_SESSION_KEY}")){var s=document.createElement("style");s.textContent="[data-page-loader]{display:none!important}";document.head.appendChild(s)}}catch(e){}`;
+// #46: the injected <style> copies this script's own CSP nonce (via
+// document.currentScript.nonce, which survives the DOM's post-parse nonce
+// hiding) so it stays allowed once the CSP is enforced with a strict style-src.
+const skipScript = `try{if(sessionStorage.getItem("${LOADER_SESSION_KEY}")){var s=document.createElement("style");s.textContent="[data-page-loader]{display:none!important}";var n=document.currentScript&&document.currentScript.nonce;if(n)s.setAttribute("nonce",n);document.head.appendChild(s)}}catch(e){}`;
 
-export default function HomeHero() {
+export default function HomeHero({ nonce }: { nonce?: string }) {
   // false at hydration (matches SSR), true on fresh SPA re-mounts.
   const [skipped, setSkipped] = useState(() => shownThisSpaSession);
   const [videoReady, setVideoReady] = useState(false);
@@ -84,7 +87,17 @@ export default function HomeHero() {
   // remount would restart the video).
   return (
     <>
-      {!skipped && <script dangerouslySetInnerHTML={{ __html: skipScript }} />}
+      {!skipped && (
+        // suppressHydrationWarning: browsers blank the nonce content attribute
+        // after using it for the CSP check, so the hydrating DOM reads nonce=""
+        // while SSR emitted the real value — an expected, benign divergence. The
+        // script already ran at parse time; hydration never re-executes it.
+        <script
+          nonce={nonce}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: skipScript }}
+        />
+      )}
       <AnimatePresence
         onExitComplete={() => {
           // Loader's slide-up has finished — now release the lock/inert. On
