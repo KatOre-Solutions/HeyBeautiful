@@ -4,6 +4,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { formatPrice } from "@/lib/format";
 import type { Bundle } from "@/lib/products";
 
 export default function BundleCard({
@@ -91,10 +92,10 @@ export default function BundleCard({
                   className="heading-serif text-2xl text-[#1e1814]"
                   style={{ fontFamily: "var(--font-cormorant)" }}
                 >
-                  ${bundle.price}
+                  {formatPrice(bundle.price)}
                 </span>
                 <span className="text-[#1e1814]/35 text-sm line-through">
-                  ${bundle.originalPrice}
+                  {formatPrice(bundle.originalPrice)}
                 </span>
               </div>
 
