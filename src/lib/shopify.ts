@@ -230,7 +230,13 @@ export async function getProducts(): Promise<ShopifyProduct[]> {
     products: { edges: Array<{ node: ShopifyProductNode }> };
   }>(PRODUCTS_QUERY);
 
-  if (data === null) {
+  // `data === null` is the unconfigured/errored path. The `products` check is
+  // separate: a 200 carrying `{"data":{}}` would otherwise reach the map below
+  // and throw OUTSIDE shopifyFetch's try. This guard belongs here rather than in
+  // shopifyFetch because that helper now serves two queries, and the other one
+  // (`product(handle:)`) returns a null root field legitimately — for any handle
+  // Shopify doesn't know. Any future query must bring its own root-field check.
+  if (data === null || !data.products?.edges) {
     // No Shopify credentials yet — show the "Coming Soon" placeholders. A
     // configured store that errored returns an empty grid instead of fake
     // products (shopifyFetch has already logged the cause).
