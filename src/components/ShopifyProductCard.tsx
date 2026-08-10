@@ -9,14 +9,9 @@ import { fadeUp, ease } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
+import { formatPrice } from "@/lib/format";
 import { isSoldOut, toCartItem, type ShopifyProduct } from "@/lib/shopify";
 
-const ZAR = new Intl.NumberFormat("en-ZA", {
-  style: "currency",
-  currency: "ZAR",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
 
 function WishlistHeart({ product }: { product: ShopifyProduct }) {
   const { toggleItem, isWishlisted } = useWishlist();
@@ -328,11 +323,11 @@ export default function ShopifyProductCard({
               className="heading-serif text-xl text-[#1e1814]"
               style={{ fontFamily: "var(--font-cormorant)" }}
             >
-              {ZAR.format(product.price)}
+              {formatPrice(product.price)}
             </span>
             {product.originalPrice != null && (
               <span className="text-[#1e1814]/35 text-sm line-through">
-                {ZAR.format(product.originalPrice)}
+                {formatPrice(product.originalPrice)}
               </span>
             )}
           </div>
