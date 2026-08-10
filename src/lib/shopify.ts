@@ -27,6 +27,7 @@ const PRODUCT_FRAGMENT = `
           title
           availableForSale
           price { amount }
+          compareAtPrice { amount }
         }
       }
     }
@@ -56,6 +57,7 @@ interface ShopifyVariantNode {
   title: string;
   availableForSale: boolean;
   price: { amount: string } | null;
+  compareAtPrice: { amount: string } | null;
 }
 
 interface ShopifyProductNode {
@@ -86,6 +88,11 @@ export interface ShopifyVariant {
   id: string;
   label: string;
   price: number;
+  /**
+   * This variant's own compare-at price, unlike `ShopifyProduct.originalPrice`
+   * which is the product-level range and only lines up with the cheapest variant.
+   */
+  originalPrice: number | null;
   availableForSale: boolean;
 }
 
@@ -197,13 +204,20 @@ function toProduct(node: ShopifyProductNode): ShopifyProduct {
   );
   const price = parseFloat(node.priceRange?.minVariantPrice?.amount ?? "0");
   const gallery = node.images.edges.map(({ node: img }) => img.url);
-  const variants: ShopifyVariant[] = node.variants.edges.map(({ node: v }) => ({
-    id: gidToId(v.id),
-    // Single-variant products in Shopify carry the synthetic "Default Title".
-    label: v.title === "Default Title" ? node.title : v.title,
-    price: parseFloat(v.price?.amount ?? "0"),
-    availableForSale: v.availableForSale,
-  }));
+  const variants: ShopifyVariant[] = node.variants.edges.map(({ node: v }) => {
+    const vPrice = parseFloat(v.price?.amount ?? "0");
+    const vCompare = parseFloat(v.compareAtPrice?.amount ?? "0");
+    return {
+      id: gidToId(v.id),
+      // Single-variant products in Shopify carry the synthetic "Default Title".
+      label: v.title === "Default Title" ? node.title : v.title,
+      price: vPrice,
+      // Only a compare-at ABOVE the price is a discount; Shopify lets merchants
+      // set it equal to the price, which is not a sale.
+      originalPrice: vCompare > vPrice ? vCompare : null,
+      availableForSale: v.availableForSale,
+    };
+  });
 
   return {
     id: `product:${gidToId(node.id)}`,

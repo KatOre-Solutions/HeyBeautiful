@@ -50,10 +50,14 @@ export default function ProductDetailContent({
 
   const soldOut = isSoldOut(product);
   const price = variant?.price ?? product.price;
-  // Shopify's compareAtPrice is a product-level range, so it only lines up with
-  // the variant the range was derived from — show it on the cheapest variant.
-  const showCompareAt =
-    product.originalPrice != null && price === product.price;
+  // Prefer the selected variant's own compare-at. The product-level
+  // `originalPrice` is compareAtPriceRange.minVariantPrice, which only lines up
+  // with the CHEAPEST variant — and defaultVariant() skips that one when it's
+  // sold out, so keying off it alone silently drops the strikethrough from a
+  // genuinely discounted product. Fall back to the range only when the selected
+  // variant is the cheapest, which is exactly when the range describes it.
+  const originalPrice =
+    variant?.originalPrice ?? (price === product.price ? product.originalPrice : null);
 
   const handleAddToCart = () => {
     if (soldOut || variant?.availableForSale === false) return;
@@ -171,9 +175,9 @@ export default function ProductDetailContent({
               >
                 {formatPrice(price)}
               </span>
-              {showCompareAt && (
+              {originalPrice != null && (
                 <span className="text-ink/35 text-lg line-through">
-                  {formatPrice(product.originalPrice!)}
+                  {formatPrice(originalPrice)}
                 </span>
               )}
             </motion.div>
