@@ -118,6 +118,28 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   Shopify product gid) and `bundle:<slug>` (e.g. `bundle:glow`). Never bare numbers. Cart lines
   append the Shopify variant id (e.g. `product:1#4567`); build them with `toCartItem()` from
   `src/lib/shopify.ts` rather than by hand. See `CartContext`.
+- **Catalog data** (#4): products come from `src/lib/shopify.ts` — `getProducts`,
+  `getFeaturedProducts`, `getProductBySlug`, plus the `defaultVariant` / `isSoldOut` /
+  `toCartItem` helpers. Fetches are tagged `"products"` with an hourly `revalidate` as a
+  safety net; Shopify's product webhooks bust the tag on demand via `POST /api/revalidate`.
+  With no credentials the store degrades to non-purchasable "Coming Soon" placeholders;
+  a *configured* store that errors renders an empty grid rather than fake products.
+  Bundles are still hardcoded in `src/lib/products.ts` — no Shopify equivalent yet.
+- **Webhook auth** (#4): `/api/revalidate` verifies Shopify's `X-Shopify-Hmac-Sha256`
+  (base64 HMAC-SHA256 over the raw body) with `timingSafeEqual`. Needs
+  `SHOPIFY_WEBHOOK_SECRET` — the value Shopify shows under Settings → Notifications →
+  Webhooks, not one you invent. Unset fails closed with 503. Use
+  `revalidateTag("products", { expire: 0 })`, **not** the `"max"` profile — `"max"` sets
+  expiry a year out and only marks the tag stale, so the next shopper still gets the old price.
+- **Prices always go through `formatPrice`** (`src/lib/format.ts`) — never construct an
+  `Intl.NumberFormat` in a component. It renders `R 54` for whole amounts and `R 54,99`
+  when there are cents; three divergent copies once made one screen show both `R 68` and
+  `R 75,00` for the same catalog.
+- **`ShopifyProductCard` takes `variant` + `priority` from its grid** (#4): `variant`
+  ("store" | "featured") picks the column-width `sizes` hint — the store is 4-col, the
+  homepage featured grid 5-col, so one string can't serve both. `priority` defaults off;
+  only `StoreContent` sets it (`priority={index < 4}`, its LCP row). `npm run images:check`
+  guards all of this with literal string matches.
 - **Design tokens, colors, fonts, and motion** — see [Brand & design system](#brand--design-system)
   above. Prefer named tokens/utilities over hex literals and inlined bezier arrays.
 - **Shared CSS utilities** (`src/app/globals.css`): `section-py`, `section-padding`,
