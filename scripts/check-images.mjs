@@ -29,6 +29,17 @@ const PRODUCT_ASPECT_CLASS = "aspect-[4/5]";
 /** Cards eagerly loaded at the top of the store grid. Must match StoreContent. */
 const EAGER_STORE_CARDS = "priority={index < 4}";
 
+/** How the shared card must forward eagerness. Must match ShopifyProductCard. */
+const CARD_PRIORITY_PROP = "priority={priority}";
+
+/**
+ * Per-grid column widths. The store grid is 4-col at lg and the homepage featured
+ * grid is 5-col, so one `sizes` string cannot serve both — the shared card must
+ * carry a hint for each. See ShopifyProductCard's SIZES.
+ */
+const STORE_SIZES_TAIL = "302px";
+const FEATURED_SIZES_TAIL = "237px";
+
 const failures = [];
 const fail = (file, line, msg) => failures.push({ file, line, msg });
 
@@ -85,27 +96,61 @@ function checkProductAspect(file, src) {
  * must NOT — it sits below a <video> hero that already preloads itself, so
  * preloading there would contend with the real LCP.
  *
- * That grid is FeaturedProducts -> ShopifyProductCard, and ShopifyProductCard is
- * where an <Image priority> could actually be introduced. FeaturedProducts only
- * delegates to it and never names `priority`, so asserting against FeaturedProducts
- * alone is vacuous — we scan the Image tags of both files instead.
+ * Since #4 both grids render the SAME component (ShopifyProductCard), so the card
+ * can no longer be blanket-banned from `priority` — the store legitimately needs
+ * it. The invariant is now DELEGATION: the card's <Image> may only read the
+ * `priority` prop, and each grid decides. Three literal assertions cover it:
+ *   - StoreContent passes `priority={index < 4}`;
+ *   - ShopifyProductCard's <Image> reads `priority={priority}` and nothing else;
+ *   - FeaturedProducts never passes `priority` to the card at all.
  */
 function checkPriority(file, src) {
   if (/StoreContent\.tsx$/.test(file) && !src.includes(EAGER_STORE_CARDS)) {
     fail(file, 1, `store grid must eager-load its first row via \`${EAGER_STORE_CARDS}\``);
   }
-  if (/(?:FeaturedProducts|ShopifyProductCard)\.tsx$/.test(file)) {
+
+  // The homepage grid only delegates, so the one way it could eager-load is by
+  // passing the prop. Scan the card tags, not the whole file, so prose is safe.
+  if (/FeaturedProducts\.tsx$/.test(file)) {
+    for (const m of src.matchAll(/<ShopifyProductCard\b[\s\S]*?\/>/g)) {
+      // `priority`, `priority={true}`, or `priority={<expr>}` all eager-load;
+      // only an explicit `priority={false}` opts out.
+      const setsPriority = /(?:^|\s)priority(?:\s|=|\/?>)/.test(m[0]);
+      const explicitlyOff = /\bpriority\s*=\s*\{\s*false\s*\}/.test(m[0]);
+      if (setsPriority && !explicitlyOff) {
+        fail(file, lineAt(src, m.index), "homepage featured grid must not pass `priority` — the LCP is the hero video");
+      }
+    }
+  }
+
+  // The shared card must not decide for itself: a hardcoded `priority` would
+  // eager-load BOTH grids, and a missing one would silently drop the store's.
+  if (/ShopifyProductCard\.tsx$/.test(file)) {
+    if (!src.includes(CARD_PRIORITY_PROP)) {
+      fail(file, 1, `shared card must forward the grid's eagerness via \`${CARD_PRIORITY_PROP}\``);
+    }
     for (const m of src.matchAll(/<Image\b[\s\S]*?\/>/g)) {
       const tag = m[0];
-      // `priority`, `priority={true}`, or `priority={<expr>}` all eager-load;
-      // only an explicit `priority={false}` opts out. A `priority` in prose (e.g.
-      // the "no priority here on purpose" comment) sits outside the tag and is
-      // never scanned.
       const setsPriority = /(?:^|\s)priority(?:\s|=|\/?>)/.test(tag);
-      const explicitlyOff = /\bpriority\s*=\s*\{\s*false\s*\}/.test(tag);
-      if (setsPriority && !explicitlyOff) {
-        fail(file, lineAt(src, m.index), "homepage featured <Image> must not set `priority` — the LCP is the hero video");
+      if (setsPriority && !tag.includes(CARD_PRIORITY_PROP)) {
+        fail(file, lineAt(src, m.index), `shared card must not hardcode eagerness — use \`${CARD_PRIORITY_PROP}\``);
       }
+    }
+  }
+}
+
+/**
+ * 4. The shared card must carry a column-width hint for BOTH grids.
+ *
+ * Deleting ProductCard in #4 nearly lost the store's 4-col string, leaving every
+ * store card advertising the homepage's 5-col width and requesting an
+ * under-resolution candidate. Nothing else catches that — it type-checks fine.
+ */
+function checkCardSizes(file, src) {
+  if (!/ShopifyProductCard\.tsx$/.test(file)) return;
+  for (const tail of [STORE_SIZES_TAIL, FEATURED_SIZES_TAIL]) {
+    if (!src.includes(tail)) {
+      fail(file, 1, `shared card is missing the \`${tail}\` column-width hint (store is 4-col, featured 5-col — one string can't serve both)`);
     }
   }
 }
@@ -116,6 +161,7 @@ for (const file of files) {
   checkFillHasSizes(file, src);
   checkProductAspect(file, src);
   checkPriority(file, src);
+  checkCardSizes(file, src);
 }
 
 if (failures.length) {

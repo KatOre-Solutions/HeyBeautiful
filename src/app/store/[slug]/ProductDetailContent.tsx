@@ -319,8 +319,12 @@ export default function ProductDetailContent({
               animate="visible"
               className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
             >
+              {/* This rail is grid-cols-2 md:grid-cols-4 where the store is 2/3/4, so
+                  "store" over-estimates by one column in the md band (33.33vw vs a
+                  real 25vw). Deliberate: over-estimating only picks a slightly larger
+                  candidate, while under-estimating ships a blurry one. */}
               {related.map((p) => (
-                <ShopifyProductCard key={p.id} product={p} />
+                <ShopifyProductCard key={p.id} product={p} variant="store" />
               ))}
             </motion.div>
           </div>

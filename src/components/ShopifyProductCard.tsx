@@ -94,6 +94,32 @@ function WishlistHeart({ product }: { product: ShopifyProduct }) {
   );
 }
 
+/** Which grid this card sits in. Decides the `sizes` hint — nothing else. */
+type CardVariant = "store" | "featured";
+
+/**
+ * Column widths, derived from the grid each card sits in. One string can't serve
+ * both: the store is 4-col at lg and the homepage featured grid is 5-col, so the
+ * store's 25vw would over-request on the homepage and the featured 20vw would
+ * ship a blurry candidate to the store. Guarded by `npm run images:check`.
+ */
+const SIZES: Record<CardVariant, string> = {
+  //   <768   2 cols, gap-4  (16), section-padding px-6  (2*24)  -> (100vw - 48 - 16)/2
+  //   <1024  3 cols, gap-6  (24), px-12 (2*48)                  -> (100vw - 96 - 48)/3
+  //   <1280  4 cols, gap-6  (24), px-20 (2*80)                  -> (100vw - 160 - 72)/4
+  //   <1504  4 cols, gap-6  (24), px-28 (2*112)                 -> (100vw - 224 - 72)/4
+  //   >=1504 grid caps at max-w-7xl (1280)                      -> (1280 - 72)/4 = 302
+  store:
+    "(max-width: 767px) calc(50vw - 32px), (max-width: 1023px) calc(33.33vw - 48px), (max-width: 1279px) calc(25vw - 58px), (max-width: 1503px) calc(25vw - 74px), 302px",
+  //   <768   2 cols, gap-4 (16), section-padding px-6  (2*24) -> (100vw - 48 - 16)/2
+  //   <1024  3 cols, gap-6 (24), px-12 (2*48)                 -> (100vw - 96 - 48)/3
+  //   <1280  5 cols, gap-6 (24), px-20 (2*80)                 -> (100vw - 160 - 96)/5
+  //   <1504  5 cols, gap-6 (24), px-28 (2*112)                -> (100vw - 224 - 96)/5
+  //   >=1504 grid caps at max-w-7xl (1280)                    -> (1280 - 96)/5 = 237
+  featured:
+    "(max-width: 767px) calc(50vw - 32px), (max-width: 1023px) calc(33.33vw - 48px), (max-width: 1279px) calc(20vw - 51px), (max-width: 1503px) calc(20vw - 64px), 237px",
+};
+
 /**
  * Shared storefront product card, built on `ShopifyProduct`. Used by the home
  * page's featured grid, the store grid and the "you may also love" rail.
@@ -101,8 +127,21 @@ function WishlistHeart({ product }: { product: ShopifyProduct }) {
  * The detail link, star rating and explicit badge render only when the matching
  * optional fields are present, so a product missing (say) review metafields
  * simply drops that row rather than showing a placeholder value.
+ *
+ * `variant` and `priority` are both the GRID's business, not the card's: a card
+ * can't know which grid it's in, nor where in one it lands. `variant` is required
+ * so a new grid is forced to pick a column-width hint; `priority` defaults off so
+ * the homepage — whose LCP is the hero video — stays lazy by omission.
  */
-export default function ShopifyProductCard({ product }: { product: ShopifyProduct }) {
+export default function ShopifyProductCard({
+  product,
+  variant,
+  priority = false,
+}: {
+  product: ShopifyProduct;
+  variant: CardVariant;
+  priority?: boolean;
+}) {
   const [hovered, setHovered] = useState(false);
   const { addItem } = useCart();
 
@@ -155,21 +194,14 @@ export default function ShopifyProductCard({ product }: { product: ShopifyProduc
             animate={{ scale: hovered ? 1.06 : 1 }}
             transition={{ duration: 0.8, ease: ease.luxury }}
           >
-            {/* Column width, derived from the FeaturedProducts grid. Note this is a
-                5-col grid at lg, not 4 like the store — the old 25vw was too wide:
-                  <768   2 cols, gap-4 (16), section-padding px-6  (2*24) -> (100vw - 48 - 16)/2
-                  <1024  3 cols, gap-6 (24), px-12 (2*48)                 -> (100vw - 96 - 48)/3
-                  <1280  5 cols, gap-6 (24), px-20 (2*80)                 -> (100vw - 160 - 96)/5
-                  <1504  5 cols, gap-6 (24), px-28 (2*112)                -> (100vw - 224 - 96)/5
-                  >=1504 grid caps at max-w-7xl (1280)                    -> (1280 - 96)/5 = 237
-                No `priority` here on purpose: this grid is the third section of the
-                homepage, below a <video> hero that already preloads itself. */}
+            {/* Both hints come from the grid — see `SIZES` and the props doc above. */}
             <Image
               src={product.image}
               alt={product.name}
               fill
+              priority={priority}
               className="object-cover"
-              sizes="(max-width: 767px) calc(50vw - 32px), (max-width: 1023px) calc(33.33vw - 48px), (max-width: 1279px) calc(20vw - 51px), (max-width: 1503px) calc(20vw - 64px), 237px"
+              sizes={SIZES[variant]}
             />
           </motion.div>
         )}
