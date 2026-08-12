@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Image from "next/image";
 import { motion, useInView } from "framer-motion";
-import { fadeUp, slideInLeft, slideInRight, staggerContainer, shimmerLine } from "@/lib/motion";
+import { fadeUp, slideInLeft, staggerContainer, shimmerLine } from "@/lib/motion";
 
 const pillars = [
   { label: "Performance", sub: "Engineered to perform" },

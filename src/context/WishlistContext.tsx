@@ -46,6 +46,9 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         const restored = (JSON.parse(raw) as WishlistProduct[]).filter(
           (p) => typeof p.id === "string"
         );
+        // One-time hydrate from localStorage on mount; can't read storage
+        // during SSR/render without a hydration mismatch, so restore here.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setItems(restored);
       }
     } catch {

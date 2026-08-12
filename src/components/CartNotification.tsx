@@ -18,6 +18,9 @@ export default function CartNotification() {
   // changes on every add (even for the same product) so the timer restarts.
   useEffect(() => {
     if (!lastAdded) return;
+    // Intentional: mirror each new `lastAdded` into local display state so the
+    // toast animates in and the auto-dismiss timer (re)starts on every add.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShown({ product: lastAdded.product, key: lastAdded.key });
     const timer = setTimeout(() => {
       setShown(null);

@@ -172,7 +172,7 @@ export default function Reviews() {
                     className="heading-serif text-2xl md:text-3xl text-[#1e1814] mb-4 leading-tight"
                     style={{ fontFamily: "var(--font-cormorant)" }}
                   >
-                    "{active.title}"
+                    &ldquo;{active.title}&rdquo;
                   </h3>
                   <p
                     className="text-[#1e1814]/65 leading-relaxed mb-8"

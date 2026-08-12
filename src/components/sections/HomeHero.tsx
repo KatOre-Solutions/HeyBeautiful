@@ -55,6 +55,7 @@ export default function HomeHero({ nonce }: { nonce?: string }) {
     shownThisSpaSession = true;
     if (seen) {
       // Loader is already display:none via the injected style — drop it silently.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSkipped(true);
       return;
     }

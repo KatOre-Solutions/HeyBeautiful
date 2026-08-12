@@ -58,6 +58,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
           // Drop legacy entries with numeric ids (pre-#20): they no longer map to
           // any product and could collide with the new namespaced keys.
           const restored = parsed.filter((p) => typeof p.id === "string");
+          // One-time hydrate from localStorage on mount; can't read storage
+          // during SSR/render without a hydration mismatch, so restore here.
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setItems(restored);
         }
       }

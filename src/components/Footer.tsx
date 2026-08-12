@@ -2,9 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Instagram, Youtube, MessageCircle } from "lucide-react";
-import { fadeUp, staggerContainer } from "@/lib/motion";
 
 const links = {
   Shop: [
