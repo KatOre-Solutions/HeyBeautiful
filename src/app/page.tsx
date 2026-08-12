@@ -10,15 +10,20 @@ import Testimonials from "@/components/sections/Testimonials";
 import Reviews from "@/components/sections/Reviews";
 import Newsletter from "@/components/sections/Newsletter";
 import Footer from "@/components/Footer";
+import { headers } from "next/headers";
 import { getFeaturedProducts } from "@/lib/shopify";
 
 export default async function Home() {
-  const products = await getFeaturedProducts(); 
+  const products = await getFeaturedProducts();
+  // #46: nonce minted per request in proxy.ts, threaded into HomeHero's inline
+  // loader script. Reading it opts this page into dynamic rendering — inherent to
+  // per-request nonces.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <ClientWrapper>
       <main data-site-root>
         <Navbar />
-        <HomeHero />
+        <HomeHero nonce={nonce} />
         <BrandStory />
         <FeaturedProducts products={products} />
         <Bundles />
