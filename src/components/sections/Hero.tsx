@@ -130,7 +130,7 @@ export default function Hero({ onVideoReady, startEntrance = true }: HeroProps) 
   return (
     <section
       ref={ref}
-      className="relative w-full h-screen min-h-[700px] overflow-hidden bg-[#1e1814]"
+      className="relative w-full h-svh min-h-[700px] overflow-hidden bg-[#1e1814]"
     >
       {/* Video background */}
       <motion.div
