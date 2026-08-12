@@ -8,7 +8,6 @@ import { getShowcaseProducts, type ShopifyProduct } from "@/lib/product";
 import BundleCard from "@/components/BundleCard";
 import BrandStory from "@/components/sections/BrandStory";
 import StoreHero from "./sections/StoreHero";
-import TrustStrip from "./sections/TrustStrip";
 import ShopByCategory, { ALL_CATEGORIES, buildCategoryTiles } from "./sections/ShopByCategory";
 import FeaturedShowcase from "./sections/FeaturedShowcase";
 import FullCollection, { COLLECTION_ID } from "./sections/FullCollection";
@@ -63,7 +62,6 @@ export default function StoreContent({ products }: { products: ShopifyProduct[] 
   return (
     <>
       <StoreHero onShopClick={scrollToCollection} />
-      <TrustStrip />
       <ShopByCategory tiles={tiles} active={activeCategory} onSelect={handleSelectCategory} />
       <FeaturedShowcase products={showcase} />
       <FullCollection
