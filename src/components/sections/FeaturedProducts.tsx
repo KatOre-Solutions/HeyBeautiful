@@ -51,7 +51,7 @@ export default function FeaturedProducts({ products }: { products: ShopifyProduc
           className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6"
         >
           {products.map((product) => (
-            <ShopifyProductCard key={product.id} product={product} />
+            <ShopifyProductCard key={product.id} product={product} variant="featured" />
           ))}
         </motion.div>
 

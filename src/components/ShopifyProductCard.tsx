@@ -9,14 +9,9 @@ import { fadeUp, ease } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
-import type { ShopifyProduct } from "@/lib/shopify";
+import { formatPrice } from "@/lib/format";
+import { isSoldOut, toCartItem, type ShopifyProduct } from "@/lib/shopify";
 
-const ZAR = new Intl.NumberFormat("en-ZA", {
-  style: "currency",
-  currency: "ZAR",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
 
 function WishlistHeart({ product }: { product: ShopifyProduct }) {
   const { toggleItem, isWishlisted } = useWishlist();
@@ -94,28 +89,68 @@ function WishlistHeart({ product }: { product: ShopifyProduct }) {
   );
 }
 
+/** Which grid this card sits in. Decides the `sizes` hint — nothing else. */
+type CardVariant = "store" | "featured";
+
 /**
- * Shared storefront product card, built on `ShopifyProduct`.
- *
- * Used by the home page's featured grid today. It's a superset of the legacy
- * `Product`-based `ProductCard`: the detail link, star rating and explicit
- * badge render only when the matching optional fields are present, so the
- * store pages can adopt this same component once they move onto ShopifyProduct.
+ * Column widths, derived from the grid each card sits in. One string can't serve
+ * both: the store is 4-col at lg and the homepage featured grid is 5-col, so the
+ * store's 25vw would over-request on the homepage and the featured 20vw would
+ * ship a blurry candidate to the store. Guarded by `npm run images:check`.
  */
-export default function ShopifyProductCard({ product }: { product: ShopifyProduct }) {
+const SIZES: Record<CardVariant, string> = {
+  //   <768   2 cols, gap-4  (16), section-padding px-6  (2*24)  -> (100vw - 48 - 16)/2
+  //   <1024  3 cols, gap-6  (24), px-12 (2*48)                  -> (100vw - 96 - 48)/3
+  //   <1280  4 cols, gap-6  (24), px-20 (2*80)                  -> (100vw - 160 - 72)/4
+  //   <1504  4 cols, gap-6  (24), px-28 (2*112)                 -> (100vw - 224 - 72)/4
+  //   >=1504 grid caps at max-w-7xl (1280)                      -> (1280 - 72)/4 = 302
+  store:
+    "(max-width: 767px) calc(50vw - 32px), (max-width: 1023px) calc(33.33vw - 48px), (max-width: 1279px) calc(25vw - 58px), (max-width: 1503px) calc(25vw - 74px), 302px",
+  //   <768   2 cols, gap-4 (16), section-padding px-6  (2*24) -> (100vw - 48 - 16)/2
+  //   <1024  3 cols, gap-6 (24), px-12 (2*48)                 -> (100vw - 96 - 48)/3
+  //   <1280  5 cols, gap-6 (24), px-20 (2*80)                 -> (100vw - 160 - 96)/5
+  //   <1504  5 cols, gap-6 (24), px-28 (2*112)                -> (100vw - 224 - 96)/5
+  //   >=1504 grid caps at max-w-7xl (1280)                    -> (1280 - 96)/5 = 237
+  featured:
+    "(max-width: 767px) calc(50vw - 32px), (max-width: 1023px) calc(33.33vw - 48px), (max-width: 1279px) calc(20vw - 51px), (max-width: 1503px) calc(20vw - 64px), 237px",
+};
+
+/**
+ * Shared storefront product card, built on `ShopifyProduct`. Used by the home
+ * page's featured grid, the store grid and the "you may also love" rail.
+ *
+ * The detail link, star rating and explicit badge render only when the matching
+ * optional fields are present, so a product missing (say) review metafields
+ * simply drops that row rather than showing a placeholder value.
+ *
+ * `variant` and `priority` are both the GRID's business, not the card's: a card
+ * can't know which grid it's in, nor where in one it lands. `variant` is required
+ * so a new grid is forced to pick a column-width hint; `priority` defaults off so
+ * the homepage — whose LCP is the hero video — stays lazy by omission.
+ */
+export default function ShopifyProductCard({
+  product,
+  variant,
+  priority = false,
+}: {
+  product: ShopifyProduct;
+  variant: CardVariant;
+  priority?: boolean;
+}) {
   const [hovered, setHovered] = useState(false);
   const { addItem } = useCart();
+
+  const soldOut = isSoldOut(product);
+  // Placeholders have no Shopify variant to buy; sold-out products have none in
+  // stock. Both keep the card's imagery but lose every purchase control.
+  const purchasable = !product.placeholder && !soldOut;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem({
-      id: product.id,
-      name: product.name,
-      category: product.category,
-      price: product.price,
-      image: product.image,
-    });
+    // Quick-add takes the first in-stock variant; the detail page is where a
+    // shopper picks a specific one.
+    addItem(toCartItem(product));
   };
 
   return (
@@ -154,30 +189,30 @@ export default function ShopifyProductCard({ product }: { product: ShopifyProduc
             animate={{ scale: hovered ? 1.06 : 1 }}
             transition={{ duration: 0.8, ease: ease.luxury }}
           >
-            {/* Column width, derived from the FeaturedProducts grid. Note this is a
-                5-col grid at lg, not 4 like the store — the old 25vw was too wide:
-                  <768   2 cols, gap-4 (16), section-padding px-6  (2*24) -> (100vw - 48 - 16)/2
-                  <1024  3 cols, gap-6 (24), px-12 (2*48)                 -> (100vw - 96 - 48)/3
-                  <1280  5 cols, gap-6 (24), px-20 (2*80)                 -> (100vw - 160 - 96)/5
-                  <1504  5 cols, gap-6 (24), px-28 (2*112)                -> (100vw - 224 - 96)/5
-                  >=1504 grid caps at max-w-7xl (1280)                    -> (1280 - 96)/5 = 237
-                No `priority` here on purpose: this grid is the third section of the
-                homepage, below a <video> hero that already preloads itself. */}
+            {/* Both hints come from the grid — see `SIZES` and the props doc above. */}
             <Image
               src={product.image}
               alt={product.name}
               fill
+              priority={priority}
               className="object-cover"
-              sizes="(max-width: 767px) calc(50vw - 32px), (max-width: 1023px) calc(33.33vw - 48px), (max-width: 1279px) calc(20vw - 51px), (max-width: 1503px) calc(20vw - 64px), 237px"
+              sizes={SIZES[variant]}
             />
           </motion.div>
         )}
 
-        {/* Top row — badge + wishlist. Placeholders aren't purchasable, so they
+        {/* Top row — badge + wishlist. Placeholders aren't real products, so they
             get no badge and no wishlist control. */}
         {!product.placeholder && (
           <div className="absolute top-4 left-4 right-4 flex items-start justify-between z-20">
-            {product.badge ? (
+            {soldOut ? (
+              <span
+                className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase"
+                style={{ background: "rgba(30,24,20,0.6)" }}
+              >
+                Sold Out
+              </span>
+            ) : product.badge ? (
               <span
                 className="px-3 py-1 rounded-full text-white text-[9px] font-semibold tracking-[0.12em] uppercase"
                 style={{ background: product.badgeColor ?? "#c9977a" }}
@@ -200,7 +235,7 @@ export default function ShopifyProductCard({ product }: { product: ShopifyProduc
 
         {/* Quick-add overlay */}
         <AnimatePresence>
-          {hovered && !product.placeholder && (
+          {hovered && purchasable && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -288,15 +323,15 @@ export default function ShopifyProductCard({ product }: { product: ShopifyProduc
               className="heading-serif text-xl text-[#1e1814]"
               style={{ fontFamily: "var(--font-cormorant)" }}
             >
-              {ZAR.format(product.price)}
+              {formatPrice(product.price)}
             </span>
             {product.originalPrice != null && (
               <span className="text-[#1e1814]/35 text-sm line-through">
-                {ZAR.format(product.originalPrice)}
+                {formatPrice(product.originalPrice)}
               </span>
             )}
           </div>
-          {!product.placeholder && (
+          {purchasable && (
             <button
               onClick={handleAddToCart}
               className="relative z-[2] w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
