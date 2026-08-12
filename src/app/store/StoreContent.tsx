@@ -6,7 +6,7 @@ import { fadeUp, staggerContainer, staggerContainerSlow } from "@/lib/motion";
 import { bundles } from "@/lib/products";
 import ShopifyProductCard from "@/components/ShopifyProductCard";
 import BundleCard from "@/components/BundleCard";
-import type { ShopifyProduct } from "@/lib/shopify";
+import type { ShopifyProduct } from "@/lib/product";
 
 export default function StoreContent({ products }: { products: ShopifyProduct[] }) {
   const bundlesRef = useRef<HTMLDivElement>(null);

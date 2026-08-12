@@ -1,7 +1,14 @@
-// Catalog data layer. Every storefront surface (home featured grid, store grid,
-// product detail) reads products from here, so Shopify is the single source of
-// truth. When the store isn't configured we fall back to non-purchasable
-// placeholders so the site still renders.
+// Catalog data layer — Storefront API fetching. Every storefront surface (home
+// featured grid, store grid, product detail) reads products from here, so Shopify
+// is the single source of truth. When the store isn't configured we fall back to
+// non-purchasable placeholders so the site still renders.
+//
+// SERVER ONLY. The product shape and the pure helpers live in `./product`, which
+// is what client components import. Keeping them apart matters: this module
+// reaches the Storefront queries and the development catalogue, and a client
+// component importing it drags all of that into the browser bundle (#68).
+
+import type { ShopifyProduct, ShopifyVariant } from "./product";
 
 const PRODUCT_FRAGMENT = `
   fragment CatalogProduct on Product {
@@ -83,43 +90,25 @@ interface ShopifyProductNode {
   ratingCount: { value: string } | null;
 }
 
-export interface ShopifyVariant {
-  /** Numeric Shopify variant id — the `#<variantId>` half of the cart key. */
-  id: string;
-  label: string;
-  price: number;
-  /**
-   * This variant's own compare-at price, unlike `ShopifyProduct.originalPrice`
-   * which is the product-level range and only lines up with the cheapest variant.
-   */
-  originalPrice: number | null;
-  availableForSale: boolean;
+/**
+ * Development catalogue switch (#68). ONLY the exact string "true" enables it —
+ * anything else, including unset, means the real Shopify catalogue. Safe by
+ * default, so a missing or misspelled value can never serve fake products.
+ *
+ * `NEXT_PUBLIC_*` is inlined at BUILD time, so this is a compile-time constant:
+ * changing it on Netlify requires a new build, and in production mode the
+ * `import()` below is dead code the bundler drops entirely.
+ */
+function usePlaceholderCatalogue(): boolean {
+  return process.env.NEXT_PUBLIC_USE_PLACEHOLDER_PRODUCTS === "true";
 }
 
-export interface ShopifyProduct {
-  /** Namespaced cart key, e.g. "product:1" — never a bare number (see CartContext). */
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  originalPrice: number | null;
-  image: string;
-  tags: string[];
-  /** Placeholders aren't purchasable: no cart, no wishlist, no detail page. */
-  placeholder?: boolean;
-  /** Shopify handle; enables the card's link to `/store/<slug>`. */
-  slug?: string;
-  description?: string;
-  gallery?: string[];
-  variants?: ShopifyVariant[];
-  /** Only present when the store publishes the `reviews` metafields. */
-  rating?: number;
-  reviews?: number;
-  /** Explicit badge label; falls back to a "Sale" badge when `originalPrice` is set. */
-  badge?: string;
-  badgeColor?: string;
-}
-
+/**
+ * The "Coming Soon" tiles for a store with NO credentials at all. Unrelated to
+ * the development catalogue in `placeholder-products.ts`, despite the name:
+ * `placeholder: true` means non-purchasable, and ShopifyProductCard uses it to
+ * strip every purchase control. Development-catalogue products must never set it.
+ */
 const placeholderProducts: ShopifyProduct[] = [
   { id: "product:1", name: "Glow Collagen Blend", category: "Beauty Support", price: 54, originalPrice: 68, image: "", tags: ["Skin", "Hair", "Nails"], placeholder: true },
   { id: "product:2", name: "Plant Protein Luxe", category: "Performance", price: 62, originalPrice: null, image: "", tags: ["Protein", "Recovery", "Clean"], placeholder: true },
@@ -229,7 +218,9 @@ function toProduct(node: ShopifyProductNode): ShopifyProduct {
     originalPrice: compareAmount > price ? compareAmount : null,
     image: gallery[0] ?? "/images/item-1.jpeg",
     gallery,
-    tags: node.tags.slice(0, 3),
+    // Kept whole: the 3-tag cap is a card concern, and slicing here would drop a
+    // `featured` marker before `isFeatured` ever saw it. See `displayTags`.
+    tags: node.tags,
     variants,
     rating: parseRating(node.rating?.value),
     reviews: node.ratingCount?.value
@@ -240,6 +231,14 @@ function toProduct(node: ShopifyProductNode): ShopifyProduct {
 
 /** The full catalog, best-selling first. Empty when Shopify errors. */
 export async function getProducts(): Promise<ShopifyProduct[]> {
+  // Dynamic so the development catalogue is only ever loaded in development
+  // mode — and, since the flag is inlined at build time, is dropped from the
+  // production bundle altogether. It also breaks the import cycle: that module
+  // imports FEATURED_TAG from this one.
+  if (usePlaceholderCatalogue()) {
+    return (await import("./placeholder-products")).placeholderCatalogue;
+  }
+
   const data = await shopifyFetch<{
     products: { edges: Array<{ node: ShopifyProductNode }> };
   }>(PRODUCTS_QUERY);
@@ -269,55 +268,17 @@ export async function getFeaturedProducts(): Promise<ShopifyProduct[]> {
 export async function getProductBySlug(
   slug: string
 ): Promise<ShopifyProduct | null> {
+  // Must honour the switch too, or every development-catalogue card 404s the
+  // moment someone clicks it.
+  if (usePlaceholderCatalogue()) {
+    const { placeholderCatalogue } = await import("./placeholder-products");
+    return placeholderCatalogue.find((p) => p.slug === slug) ?? null;
+  }
+
   const data = await shopifyFetch<{ product: ShopifyProductNode | null }>(
     PRODUCT_BY_HANDLE_QUERY,
     { handle: slug }
   );
 
   return data?.product ? toProduct(data.product) : null;
-}
-
-/** Same-category products first, then the rest, capped at 4. */
-export function getRelatedProducts(
-  product: ShopifyProduct,
-  all: ShopifyProduct[]
-): ShopifyProduct[] {
-  const others = all.filter((p) => p.id !== product.id && !p.placeholder);
-  return others
-    .filter((p) => p.category === product.category)
-    .concat(others.filter((p) => p.category !== product.category))
-    .slice(0, 4);
-}
-
-/** The variant a card's quick-add should use: first in stock, else the first. */
-export function defaultVariant(
-  product: ShopifyProduct
-): ShopifyVariant | undefined {
-  return (
-    product.variants?.find((v) => v.availableForSale) ?? product.variants?.[0]
-  );
-}
-
-export function isSoldOut(product: ShopifyProduct): boolean {
-  const variants = product.variants;
-  // A product with no variant data (e.g. a placeholder) isn't "sold out".
-  return !!variants?.length && variants.every((v) => !v.availableForSale);
-}
-
-/**
- * Builds a cart line for a product/variant pair. Variant-specific lines append
- * `#<variantId>` to the product key so two sizes of the same product are
- * distinct rows in the bag (see CartContext).
- */
-export function toCartItem(product: ShopifyProduct, variant?: ShopifyVariant) {
-  const v = variant ?? defaultVariant(product);
-  const hasChoice = (product.variants?.length ?? 0) > 1;
-
-  return {
-    id: v ? `${product.id}#${v.id}` : product.id,
-    name: hasChoice && v ? `${product.name} — ${v.label}` : product.name,
-    category: product.category,
-    price: v?.price ?? product.price,
-    image: product.image,
-  };
 }

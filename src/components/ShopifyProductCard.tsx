@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
-import { isSoldOut, toCartItem, type ShopifyProduct } from "@/lib/shopify";
+import { displayTags, isSoldOut, toCartItem, type ShopifyProduct } from "@/lib/product";
 
 
 function WishlistHeart({ product }: { product: ShopifyProduct }) {
@@ -141,6 +141,7 @@ export default function ShopifyProductCard({
   const { addItem } = useCart();
 
   const soldOut = isSoldOut(product);
+  const tags = displayTags(product);
   // Placeholders have no Shopify variant to buy; sold-out products have none in
   // stock. Both keep the card's imagery but lose every purchase control.
   const purchasable = !product.placeholder && !soldOut;
@@ -264,10 +265,11 @@ export default function ShopifyProductCard({
           )}
         </AnimatePresence>
 
-        {/* Tags row */}
-        {product.tags.length > 0 && (
+        {/* Tags row — `displayTags` drops the `featured` merchandising marker and
+            caps the list; the raw tags stay whole on the product for selection. */}
+        {tags.length > 0 && (
           <div className="absolute bottom-0 left-0 right-0 p-4 flex gap-1.5">
-            {product.tags.map((tag) => (
+            {tags.map((tag) => (
               <span
                 key={tag}
                 className="px-2 py-0.5 rounded-full text-white/80 text-[8px] tracking-[0.1em] uppercase"

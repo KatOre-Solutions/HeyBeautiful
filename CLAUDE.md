@@ -131,6 +131,20 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   Webhooks, not one you invent. Unset fails closed with 503. Use
   `revalidateTag("products", { expire: 0 })`, **not** the `"max"` profile — `"max"` sets
   expiry a year out and only marks the tag stale, so the next shopper still gets the old price.
+- **Development catalogue** (#68): `NEXT_PUBLIC_USE_PLACEHOLDER_PRODUCTS=true` serves
+  `src/lib/placeholder-products.ts` instead of Shopify, so the storefront can be built before
+  the catalogue is populated. **Only the exact string `true`** enables it — `false`, a typo or
+  unset all mean Shopify, and the flag is inlined at *build* time, so flipping it on Netlify
+  needs a new build. `getProducts`/`getProductBySlug` both honour it (so home, store and
+  `/store/[slug]` agree); the module is loaded via `import()` inside the guarded branch, which
+  keeps it out of the production bundle and breaks the import cycle with `shopify.ts`.
+  ⚠️ Don't confuse it with `ShopifyProduct.placeholder`, which means a *non-purchasable*
+  "Coming Soon" tile for an unconfigured store — development products must never set it.
+- **Featured showcase** (#68): marked by the plain Shopify tag `featured` (`FEATURED_TAG`), so
+  merchandisers control it from admin with no deploy. `getShowcaseProducts()` takes tagged
+  products first, then tops up in catalogue order (`BEST_SELLING` for Shopify) — deterministic,
+  never random. Cards render `displayTags()`, which strips the marker; `toProduct` keeps the raw
+  tag list whole because the 3-tag cap is a card concern.
 - **Prices always go through `formatPrice`** (`src/lib/format.ts`) — never construct an
   `Intl.NumberFormat` in a component. It renders `R 54` for whole amounts and `R 54,99`
   when there are cents; three divergent copies once made one screen show both `R 68` and

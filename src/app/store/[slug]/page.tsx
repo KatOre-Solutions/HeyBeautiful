@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { getProducts, getProductBySlug, getRelatedProducts } from "@/lib/shopify";
+import { getProducts, getProductBySlug } from "@/lib/shopify";
+import { getRelatedProducts } from "@/lib/product";
 import ProductDetailContent from "./ProductDetailContent";
 
 export async function generateStaticParams() {
