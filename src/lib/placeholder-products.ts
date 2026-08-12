@@ -21,7 +21,7 @@
 // ratings, missing badges, and long names that test card typography. Anything the
 // real storefront can encounter should be representable here.
 
-import { FEATURED_TAG, type ShopifyProduct } from "./shopify";
+import { FEATURED_TAG, type ShopifyProduct } from "./product";
 
 /**
  * Ids sit in a 9000 block so a development product is obvious on sight in a cart

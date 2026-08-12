@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { fadeUp, staggerContainer, staggerContainerSlow } from "@/lib/motion";
 import ShopifyProductCard from "@/components/ShopifyProductCard";
-import type { ShopifyProduct } from "@/lib/shopify";
+import type { ShopifyProduct } from "@/lib/product";
 
 export default function FeaturedProducts({ products }: { products: ShopifyProduct[] }) {
   const ref = useRef<HTMLDivElement>(null);

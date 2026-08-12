@@ -10,7 +10,7 @@ import { formatPrice } from "@/lib/format";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import ShopifyProductCard from "@/components/ShopifyProductCard";
-import { defaultVariant, isSoldOut, toCartItem, type ShopifyProduct } from "@/lib/shopify";
+import { defaultVariant, isSoldOut, toCartItem, type ShopifyProduct } from "@/lib/product";
 
 function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
   return (

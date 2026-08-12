@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
-import { displayTags, isSoldOut, toCartItem, type ShopifyProduct } from "@/lib/shopify";
+import { displayTags, isSoldOut, toCartItem, type ShopifyProduct } from "@/lib/product";
 
 
 function WishlistHeart({ product }: { product: ShopifyProduct }) {
