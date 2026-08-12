@@ -18,3 +18,9 @@ build/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# graphify — commit the graph itself, ignore the local AST cache and run state
+graphify-out/*
+!graphify-out/GRAPH_REPORT.md
+!graphify-out/graph.html
+!graphify-out/graph.json
