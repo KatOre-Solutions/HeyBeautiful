@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { bundles } from "@/lib/products";
 import { getShowcaseProducts, type ShopifyProduct } from "@/lib/product";
@@ -11,8 +11,11 @@ import StoreHero from "./sections/StoreHero";
 import TrustStrip from "./sections/TrustStrip";
 import ShopByCategory, { ALL_CATEGORIES, buildCategoryTiles } from "./sections/ShopByCategory";
 import FeaturedShowcase from "./sections/FeaturedShowcase";
-import FullCollection from "./sections/FullCollection";
+import FullCollection, { COLLECTION_ID } from "./sections/FullCollection";
 import EditorialCards from "./sections/EditorialCards";
+
+/** Height of the fixed navbar, so a scrolled-to section isn't hidden under it. */
+const NAVBAR_OFFSET = 88;
 
 /**
  * Composition, plus the page's single piece of state. Every section is
@@ -23,8 +26,8 @@ import EditorialCards from "./sections/EditorialCards";
  * `FeaturedShowcase` is a curated shelf and stays put — see the note in that file.
  */
 export default function StoreContent({ products }: { products: ShopifyProduct[] }) {
+  const reducedMotion = useReducedMotion();
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORIES);
-  const collectionRef = useRef<HTMLElement>(null);
   const bundlesRef = useRef<HTMLDivElement>(null);
   const bundlesInView = useInView(bundlesRef, { once: true, margin: "-80px" });
 
@@ -32,9 +35,20 @@ export default function StoreContent({ products }: { products: ShopifyProduct[] 
   // Three, to fill the showcase's 3-col grid exactly rather than orphaning one.
   const showcase = useMemo(() => getShowcaseProducts(products, 3), [products]);
 
+  /**
+   * Scrolls the collection under the fixed navbar.
+   *
+   * `scrollTo` with an explicit offset rather than `scrollIntoView` +
+   * `scroll-margin-top`: it keeps the navbar offset in the same file as the code
+   * that depends on it, and passes an explicit behaviour instead of inheriting
+   * the `html { scroll-behavior: smooth }` in globals.css.
+   */
   const scrollToCollection = useCallback(() => {
-    collectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
+    const el = document.getElementById(COLLECTION_ID);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - NAVBAR_OFFSET;
+    window.scrollTo({ top, behavior: reducedMotion ? "instant" : "smooth" });
+  }, [reducedMotion]);
 
   const handleSelectCategory = useCallback(
     (value: string) => {
@@ -53,7 +67,6 @@ export default function StoreContent({ products }: { products: ShopifyProduct[] 
       <ShopByCategory tiles={tiles} active={activeCategory} onSelect={handleSelectCategory} />
       <FeaturedShowcase products={showcase} />
       <FullCollection
-        ref={collectionRef}
         products={products}
         activeCategory={activeCategory}
         onClear={clearCategory}

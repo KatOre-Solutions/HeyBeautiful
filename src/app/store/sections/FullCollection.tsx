@@ -1,6 +1,5 @@
 "use client";
 
-import { forwardRef } from "react";
 import { motion } from "framer-motion";
 import { fadeUp, staggerContainer, staggerContainerSlow } from "@/lib/motion";
 import ShopifyProductCard from "@/components/ShopifyProductCard";
@@ -11,14 +10,29 @@ import { ALL_CATEGORIES } from "./ShopByCategory";
  * The browsable catalogue, four-up — the counterpart to the three-up showcase
  * above. This is the only grid the category filter touches.
  *
- * Animation is keyed off `activeCategory` rather than a viewport hook: after a
- * filter change the section is already on screen, so an `useInView(once)` would
- * have fired and the new cards would appear with no transition at all.
+ * The grid is deliberately NOT keyed on `activeCategory`. Keying it would
+ * remount every card on each filter change; reconciling on `product.id` instead
+ * keeps the cards that survive a filter mounted, and newly matched ones still
+ * animate in because they mount under a container already holding
+ * `initial="hidden"`.
  */
-const FullCollection = forwardRef<
-  HTMLElement,
-  { products: ShopifyProduct[]; activeCategory: string; onClear: () => void }
->(function FullCollection({ products, activeCategory, onClear }, ref) {
+
+/**
+ * Anchor the category tiles scroll to. An id rather than a forwarded ref keeps
+ * this component a plain function and makes the collection linkable as
+ * `/store#collection`.
+ */
+export const COLLECTION_ID = "collection";
+
+export default function FullCollection({
+  products,
+  activeCategory,
+  onClear,
+}: {
+  products: ShopifyProduct[];
+  activeCategory: string;
+  onClear: () => void;
+}) {
   const filtered =
     activeCategory === ALL_CATEGORIES
       ? products
@@ -26,9 +40,8 @@ const FullCollection = forwardRef<
 
   return (
     <section
-      ref={ref}
-      // Offsets the fixed navbar when the category tiles scroll us here.
-      style={{ background: "#faf7f4", scrollMarginTop: "88px" }}
+      id={COLLECTION_ID}
+      style={{ background: "#faf7f4" }}
       className="section-padding pt-16 md:pt-24 pb-20 md:pb-28"
     >
       <div className="max-w-7xl mx-auto">
@@ -86,7 +99,6 @@ const FullCollection = forwardRef<
           </div>
         ) : (
           <motion.div
-            key={activeCategory}
             variants={staggerContainerSlow}
             initial="hidden"
             animate="visible"
@@ -108,6 +120,4 @@ const FullCollection = forwardRef<
       </div>
     </section>
   );
-});
-
-export default FullCollection;
+}

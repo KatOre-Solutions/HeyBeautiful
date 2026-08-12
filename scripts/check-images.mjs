@@ -158,7 +158,7 @@ function checkCardSizes(file, src) {
   if (!/ShopifyProductCard\.tsx$/.test(file)) return;
   for (const tail of [STORE_SIZES_TAIL, FEATURED_SIZES_TAIL, SHOWCASE_SIZES_TAIL]) {
     if (!src.includes(tail)) {
-      fail(file, 1, `shared card is missing the \`${tail}\` column-width hint (store is 4-col, featured 5-col — one string can't serve both)`);
+      fail(file, 1, `shared card is missing the \`${tail}\` column-width hint (store 4-col, homepage featured 5-col, store showcase 3-col — one string can't serve all three)`);
     }
   }
 }
