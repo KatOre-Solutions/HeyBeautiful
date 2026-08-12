@@ -120,6 +120,60 @@ export interface ShopifyProduct {
   badgeColor?: string;
 }
 
+/**
+ * Marks a product for the store's featured showcase. A plain Shopify tag, so
+ * merchandisers control the showcase from admin without a deploy, and the
+ * development catalogue marks its picks the same way — one mechanism, both
+ * sources. Filtered out of the tags a card displays (see `displayTags`).
+ */
+export const FEATURED_TAG = "featured";
+
+export function isFeatured(product: ShopifyProduct): boolean {
+  return product.tags.some((t) => t.toLowerCase() === FEATURED_TAG);
+}
+
+/** Tags a card should render: everything except the merchandising marker. */
+export function displayTags(product: ShopifyProduct): string[] {
+  return product.tags.filter((t) => t.toLowerCase() !== FEATURED_TAG).slice(0, 3);
+}
+
+/**
+ * The store's featured showcase, in a stable order — never random, so the same
+ * catalogue always yields the same shelf.
+ *
+ * Tagged products come first. If there aren't enough, it tops up from the rest in
+ * catalogue order, which for Shopify is `sortKey: BEST_SELLING` — a real
+ * merchandising signal rather than an arbitrary API ordering.
+ */
+export function getShowcaseProducts(
+  all: ShopifyProduct[],
+  count = 4
+): ShopifyProduct[] {
+  const tagged = all.filter(isFeatured);
+  if (tagged.length >= count) return tagged.slice(0, count);
+  const rest = all.filter((p) => !isFeatured(p));
+  return [...tagged, ...rest].slice(0, count);
+}
+
+/**
+ * Development catalogue switch (#68). ONLY the exact string "true" enables it —
+ * anything else, including unset, means the real Shopify catalogue. Safe by
+ * default, so a missing or misspelled value can never serve fake products.
+ *
+ * `NEXT_PUBLIC_*` is inlined at BUILD time, so this is a compile-time constant:
+ * changing it on Netlify requires a new build, and in production mode the
+ * `import()` below is dead code the bundler drops entirely.
+ */
+function usePlaceholderCatalogue(): boolean {
+  return process.env.NEXT_PUBLIC_USE_PLACEHOLDER_PRODUCTS === "true";
+}
+
+/**
+ * The "Coming Soon" tiles for a store with NO credentials at all. Unrelated to
+ * the development catalogue in `placeholder-products.ts`, despite the name:
+ * `placeholder: true` means non-purchasable, and ShopifyProductCard uses it to
+ * strip every purchase control. Development-catalogue products must never set it.
+ */
 const placeholderProducts: ShopifyProduct[] = [
   { id: "product:1", name: "Glow Collagen Blend", category: "Beauty Support", price: 54, originalPrice: 68, image: "", tags: ["Skin", "Hair", "Nails"], placeholder: true },
   { id: "product:2", name: "Plant Protein Luxe", category: "Performance", price: 62, originalPrice: null, image: "", tags: ["Protein", "Recovery", "Clean"], placeholder: true },
@@ -229,7 +283,9 @@ function toProduct(node: ShopifyProductNode): ShopifyProduct {
     originalPrice: compareAmount > price ? compareAmount : null,
     image: gallery[0] ?? "/images/item-1.jpeg",
     gallery,
-    tags: node.tags.slice(0, 3),
+    // Kept whole: the 3-tag cap is a card concern, and slicing here would drop a
+    // `featured` marker before `isFeatured` ever saw it. See `displayTags`.
+    tags: node.tags,
     variants,
     rating: parseRating(node.rating?.value),
     reviews: node.ratingCount?.value
@@ -240,6 +296,14 @@ function toProduct(node: ShopifyProductNode): ShopifyProduct {
 
 /** The full catalog, best-selling first. Empty when Shopify errors. */
 export async function getProducts(): Promise<ShopifyProduct[]> {
+  // Dynamic so the development catalogue is only ever loaded in development
+  // mode — and, since the flag is inlined at build time, is dropped from the
+  // production bundle altogether. It also breaks the import cycle: that module
+  // imports FEATURED_TAG from this one.
+  if (usePlaceholderCatalogue()) {
+    return (await import("./placeholder-products")).placeholderCatalogue;
+  }
+
   const data = await shopifyFetch<{
     products: { edges: Array<{ node: ShopifyProductNode }> };
   }>(PRODUCTS_QUERY);
@@ -269,6 +333,13 @@ export async function getFeaturedProducts(): Promise<ShopifyProduct[]> {
 export async function getProductBySlug(
   slug: string
 ): Promise<ShopifyProduct | null> {
+  // Must honour the switch too, or every development-catalogue card 404s the
+  // moment someone clicks it.
+  if (usePlaceholderCatalogue()) {
+    const { placeholderCatalogue } = await import("./placeholder-products");
+    return placeholderCatalogue.find((p) => p.slug === slug) ?? null;
+  }
+
   const data = await shopifyFetch<{ product: ShopifyProductNode | null }>(
     PRODUCT_BY_HANDLE_QUERY,
     { handle: slug }
