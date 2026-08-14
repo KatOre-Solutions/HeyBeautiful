@@ -146,6 +146,21 @@
     transform: translateY(-1px);
   }
 
+  /* Rose Gold Gradient CTA. Separate from .btn-primary, which stays a flat fill —
+     it's used site-wide and shouldn't become a gradient everywhere. Hover shifts the
+     gradient position for a brightness/depth change rather than a colour change. */
+  .btn-primary-gradient {
+    @apply btn-luxury text-white bg-rose-gold-gradient-button;
+    background-size: 160% 100%;
+    box-shadow: 0 6px 24px rgba(180, 119, 146, 0.38);
+  }
+
+  .btn-primary-gradient:hover {
+    background-position: 100% 0;
+    box-shadow: 0 10px 32px rgba(180, 119, 146, 0.5);
+    transform: translateY(-1px);
+  }
+
   .btn-glass {
     @apply btn-luxury glass text-white border-white/30;
   }
@@ -168,6 +183,57 @@
   /* Decorative line */
   .deco-line {
     @apply w-12 h-px bg-[#c9977a] origin-left;
+  }
+
+  /* Auth blade silhouette AND resting position.
+     Both live in CSS rather than an inline `style` because they change at a
+     breakpoint, and an inline style can't carry one. Mobile-first, matching
+     Tailwind's direction — the 1024px here must stay in step with the `lg:`
+     classes on AuthCard/AuthBlade and the query in useIsDesktop.
+
+     Rest being CSS is what makes the blade correct on the *server-rendered*
+     paint, before hydration ever runs: an inline transform applied in a layout
+     effect arrives too late and the blade would briefly sit untransformed on
+     top of the form. It also means rest auto-tracks the card's height, because
+     the percentage resolves against the blade's own box. The transition writes
+     inline transforms while it runs and clears them at the end, handing
+     ownership back here.
+
+     Coupled constants — change one, change all: the 40px vertical run is SLANT,
+     240px is BAND_H (also the band image height in AuthBlade and the form
+     slot's top padding in AuthCard), and the desktop percentages mirror
+     BLADE_X / CONTENT_X. All in useBladeTransition.ts. */
+  .auth-blade {
+    /* Mobile: a band across the top, cut diagonally along its bottom edge,
+       lifted so only BAND_H of it shows. */
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 40px), 0 100%);
+    transform: translateY(calc(-100% + 240px));
+  }
+
+  .auth-blade [data-blade-content] {
+    transform: translateY(calc(100% - 240px));
+  }
+
+  @media (min-width: 1024px) {
+    .auth-blade {
+      /* Desktop: a parallelogram — both side edges slanted alike, so whichever
+         one is on-card at rest reads as the same diagonal. */
+      clip-path: polygon(11% 0%, 100% 0%, 89% 100%, 0% 100%);
+    }
+
+    .auth-blade[data-mode="signin"] {
+      transform: translateX(-58%);
+    }
+    .auth-blade[data-mode="signin"] [data-blade-content] {
+      transform: translateX(58%);
+    }
+
+    .auth-blade[data-mode="signup"] {
+      transform: translateX(34%);
+    }
+    .auth-blade[data-mode="signup"] [data-blade-content] {
+      transform: translateX(0);
+    }
   }
 
   /* Product card */

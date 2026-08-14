@@ -29,13 +29,13 @@ export default function AuthForm({
         {subtitle && (
           <motion.p
             variants={shimmerLine}
-            className="label-caps text-[#c9977a] mb-3"
+            className="label-caps text-rose-dark mb-3"
           >
             {subtitle}
           </motion.p>
         )}
         <h1
-          className="heading-display text-[#1e1814]"
+          className="heading-display text-ink"
           style={{
             fontFamily: "var(--font-cormorant)",
             fontSize: "clamp(2.25rem, 5vw, 3rem)",
@@ -46,8 +46,7 @@ export default function AuthForm({
         </h1>
         <motion.div
           variants={shimmerLine}
-          className="h-px w-16 mt-5 origin-left"
-          style={{ background: "#c9977a" }}
+          className="h-px w-16 mt-5 origin-left bg-rose-gold-gradient-button"
         />
       </div>
 

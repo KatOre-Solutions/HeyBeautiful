@@ -105,7 +105,7 @@ function VerifyEmail() {
   if (loading || !user) {
     return (
       <div className="w-full max-w-sm flex items-center justify-center">
-        <span className="label-caps text-rose-gold/70" style={{ fontSize: "11px" }}>
+        <span className="label-caps text-dusty-pink/70" style={{ fontSize: "11px" }}>
           Loading…
         </span>
       </div>
@@ -118,13 +118,9 @@ function VerifyEmail() {
         <div className="flex flex-col items-center text-center">
           <motion.div
             variants={fadeUp}
-            className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
-            style={{
-              background: "rgba(201,151,122,0.1)",
-              border: "1px solid rgba(201,151,122,0.22)",
-            }}
+            className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-soft-tan border border-dusty-pink/25"
           >
-            <Mail size={40} className="text-rose-gold" />
+            <Mail size={40} className="text-dusty-pink" />
           </motion.div>
 
           <motion.p
@@ -165,9 +161,9 @@ function VerifyEmail() {
                   exit={{ opacity: 0 }}
                   className="flex items-center justify-center gap-2 py-3"
                 >
-                  <CheckCircle size={16} className="text-rose-gold" />
+                  <CheckCircle size={16} className="text-dusty-pink" />
                   <span
-                    className="text-rose-gold"
+                    className="text-dusty-pink"
                     style={{ fontFamily: "var(--font-manrope)", fontSize: "0.82rem" }}
                   >
                     Verification email sent
@@ -194,12 +190,7 @@ function VerifyEmail() {
               onClick={() => router.push(dest)}
               whileHover={{ scale: 1.015 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full py-4 rounded-full text-white font-semibold text-[11px] tracking-[0.13em] uppercase"
-              style={{
-                background: "#c9977a",
-                fontFamily: "var(--font-manrope)",
-                boxShadow: "0 6px 24px rgba(201,151,122,0.38)",
-              }}
+              className="btn-primary-gradient w-full py-4"
             >
               Continue to My Account
             </motion.button>
@@ -209,7 +200,7 @@ function VerifyEmail() {
             variants={fadeUp}
             type="button"
             onClick={handleSignOut}
-            className="mt-5 text-ink/45 hover:text-rose-gold transition-colors"
+            className="mt-5 text-ink/45 hover:text-dusty-pink transition-colors"
             style={{ fontFamily: "var(--font-manrope)", fontSize: "0.8rem" }}
           >
             Wrong email? Sign out
