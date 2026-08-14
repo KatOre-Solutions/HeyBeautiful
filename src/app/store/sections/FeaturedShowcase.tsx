@@ -26,7 +26,7 @@ export default function FeaturedShowcase({
   if (products.length === 0) return null;
 
   return (
-    <section ref={ref} className="section-padding pt-16 md:pt-24" style={{ background: "#faf7f4" }}>
+    <section ref={ref} className="section-padding pt-16 md:pt-24 bg-cream">
       <div className="max-w-7xl mx-auto">
         <motion.div
           variants={staggerContainer}
@@ -35,8 +35,8 @@ export default function FeaturedShowcase({
           className="mb-12 md:mb-14"
         >
           <motion.div variants={fadeUp} className="flex items-center gap-3 mb-5">
-            <div className="h-px w-10 bg-[#c9977a]" />
-            <span className="label-caps text-[#c9977a]">Loved most</span>
+            <div className="h-px w-10 bg-rose-gold" />
+            <span className="label-caps text-rose-gold">Loved most</span>
           </motion.div>
 
           <div className="flex flex-wrap items-end justify-between gap-4">

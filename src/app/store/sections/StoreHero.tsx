@@ -55,8 +55,8 @@ export default function StoreHero({ onShopClick }: { onShopClick: () => void }) 
             className="lg:max-w-[46%]"
           >
             <motion.div variants={fadeUp} className="flex items-center gap-3 mb-5">
-              <div className="h-px w-10 bg-[#c9977a]" />
-              <span className="label-caps text-[#c9977a]">The Collection</span>
+              <div className="h-px w-10 bg-rose-gold" />
+              <span className="label-caps text-rose-gold">The Collection</span>
             </motion.div>
 
             <motion.h1
@@ -134,7 +134,7 @@ export default function StoreHero({ onShopClick }: { onShopClick: () => void }) 
                 variants={fadeUp}
                 className="flex flex-col items-center text-center gap-2.5"
               >
-                <Icon size={22} strokeWidth={1.25} className="text-[#c9977a]" />
+                <Icon size={22} strokeWidth={1.25} className="text-rose-gold" />
                 <span className="label-caps text-ink/55 text-[9px] leading-[1.5] whitespace-pre-line">
                   {label}
                 </span>

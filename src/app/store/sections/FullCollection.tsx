@@ -41,8 +41,7 @@ export default function FullCollection({
   return (
     <section
       id={COLLECTION_ID}
-      style={{ background: "#faf7f4" }}
-      className="section-padding pt-16 md:pt-24 pb-20 md:pb-28"
+      className="section-padding pt-16 md:pt-24 pb-20 md:pb-28 bg-cream"
     >
       <div className="max-w-7xl mx-auto">
         <motion.div
@@ -53,8 +52,8 @@ export default function FullCollection({
         >
           <div>
             <motion.div variants={fadeUp} className="flex items-center gap-3 mb-5">
-              <div className="h-px w-10 bg-[#c9977a]" />
-              <span className="label-caps text-[#c9977a]">
+              <div className="h-px w-10 bg-rose-gold" />
+              <span className="label-caps text-rose-gold">
                 {activeCategory === ALL_CATEGORIES ? "Everything" : activeCategory}
               </span>
             </motion.div>
@@ -77,7 +76,7 @@ export default function FullCollection({
             {activeCategory !== ALL_CATEGORIES && (
               <button
                 onClick={onClear}
-                className="label-caps text-[10px] text-[#c9977a] underline underline-offset-4 hover:text-[#8b5e52] transition-colors duration-300"
+                className="label-caps text-[10px] text-rose-gold underline underline-offset-4 hover:text-rose-dark transition-colors duration-300"
               >
                 Clear filter
               </button>
@@ -88,14 +87,18 @@ export default function FullCollection({
         {filtered.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-ink/55" style={{ fontSize: "0.95rem", fontWeight: 300 }}>
-              Nothing in this category just yet.
+              {products.length === 0
+                ? "Our collection is being restocked — check back shortly."
+                : "Nothing in this category just yet."}
             </p>
-            <button
-              onClick={onClear}
-              className="btn-luxury btn-outline mt-6"
-            >
-              View all products
-            </button>
+            {products.length > 0 && (
+              <button
+                onClick={onClear}
+                className="btn-luxury btn-outline mt-6"
+              >
+                View all products
+              </button>
+            )}
           </div>
         ) : (
           <motion.div

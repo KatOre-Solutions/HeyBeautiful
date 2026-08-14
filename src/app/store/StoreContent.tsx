@@ -7,14 +7,15 @@ import { bundles } from "@/lib/products";
 import { getShowcaseProducts, type ShopifyProduct } from "@/lib/product";
 import BundleCard from "@/components/BundleCard";
 import BrandStory from "@/components/sections/BrandStory";
+import { NAVBAR_ID } from "@/components/Navbar";
 import StoreHero from "./sections/StoreHero";
 import ShopByCategory, { ALL_CATEGORIES, buildCategoryTiles } from "./sections/ShopByCategory";
 import FeaturedShowcase from "./sections/FeaturedShowcase";
 import FullCollection, { COLLECTION_ID } from "./sections/FullCollection";
 import EditorialCards from "./sections/EditorialCards";
 
-/** Height of the fixed navbar, so a scrolled-to section isn't hidden under it. */
-const NAVBAR_OFFSET = 88;
+/** Breathing room below the navbar's rendered bottom edge, on top of its measured height. */
+const SCROLL_GAP = 16;
 
 /**
  * Composition, plus the page's single piece of state. Every section is
@@ -38,14 +39,17 @@ export default function StoreContent({ products }: { products: ShopifyProduct[] 
    * Scrolls the collection under the fixed navbar.
    *
    * `scrollTo` with an explicit offset rather than `scrollIntoView` +
-   * `scroll-margin-top`: it keeps the navbar offset in the same file as the code
-   * that depends on it, and passes an explicit behaviour instead of inheriting
-   * the `html { scroll-behavior: smooth }` in globals.css.
+   * `scroll-margin-top`: it passes an explicit behaviour instead of inheriting
+   * the `html { scroll-behavior: smooth }` in globals.css. The offset is the
+   * navbar's own measured height rather than a hardcoded constant, so it can't
+   * drift out of sync with Navbar's padding/logo size.
    */
   const scrollToCollection = useCallback(() => {
     const el = document.getElementById(COLLECTION_ID);
     if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - NAVBAR_OFFSET;
+    const navbar = document.getElementById(NAVBAR_ID);
+    const navbarOffset = navbar ? navbar.getBoundingClientRect().bottom : 0;
+    const top = el.getBoundingClientRect().top + window.scrollY - navbarOffset - SCROLL_GAP;
     window.scrollTo({ top, behavior: reducedMotion ? "instant" : "smooth" });
   }, [reducedMotion]);
 
@@ -75,10 +79,7 @@ export default function StoreContent({ products }: { products: ShopifyProduct[] 
       {/* Bundles — unchanged merchandising, still hardcoded (see #65). */}
       <section
         ref={bundlesRef}
-        className="section-py section-padding"
-        style={{
-          background: "linear-gradient(180deg, #faf7f4 0%, #f0ebe3 50%, #faf7f4 100%)",
-        }}
+        className="section-py section-padding bg-gradient-to-b from-cream via-parchment to-cream"
       >
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -88,9 +89,9 @@ export default function StoreContent({ products }: { products: ShopifyProduct[] 
             className="text-center mb-16"
           >
             <motion.div variants={fadeUp} className="flex items-center justify-center gap-3 mb-6">
-              <div className="h-px w-10 bg-[#c9977a]" />
-              <span className="label-caps text-[#c9977a]">Curated Bundles</span>
-              <div className="h-px w-10 bg-[#c9977a]" />
+              <div className="h-px w-10 bg-rose-gold" />
+              <span className="label-caps text-rose-gold">Curated Bundles</span>
+              <div className="h-px w-10 bg-rose-gold" />
             </motion.div>
 
             <motion.h2

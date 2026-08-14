@@ -46,8 +46,7 @@ export default function EditorialCards() {
   return (
     <section
       ref={ref}
-      className="section-padding section-py"
-      style={{ background: "linear-gradient(180deg, #faf7f4 0%, #f0ebe3 50%, #faf7f4 100%)" }}
+      className="section-padding section-py bg-gradient-to-b from-cream via-parchment to-cream"
     >
       <div className="max-w-7xl mx-auto">
         <motion.div
@@ -56,8 +55,8 @@ export default function EditorialCards() {
           animate={isInView ? "visible" : "hidden"}
           className="flex items-center gap-3 mb-10"
         >
-          <div className="h-px w-10 bg-[#c9977a]" />
-          <span className="label-caps text-[#c9977a]">Explore more</span>
+          <div className="h-px w-10 bg-rose-gold" />
+          <span className="label-caps text-rose-gold">Explore more</span>
         </motion.div>
 
         <motion.div
@@ -88,7 +87,7 @@ export default function EditorialCards() {
                 </div>
 
                 <div className="p-6 md:p-7">
-                  <p className="label-caps text-[#c9977a]/80 mb-2.5">{card.label}</p>
+                  <p className="label-caps text-rose-gold/80 mb-2.5">{card.label}</p>
                   <h3
                     className="heading-serif text-ink text-xl md:text-2xl leading-tight mb-3"
                     style={{ fontFamily: "var(--font-cormorant)" }}
@@ -103,7 +102,7 @@ export default function EditorialCards() {
                   </p>
 
                   <motion.span
-                    className="inline-flex items-center gap-2 mt-5 label-caps text-[10px] text-[#c9977a]"
+                    className="inline-flex items-center gap-2 mt-5 label-caps text-[10px] text-rose-gold"
                     whileHover={{ x: 3 }}
                     transition={{ duration: 0.4, ease: ease.luxury }}
                   >

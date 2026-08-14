@@ -68,7 +68,7 @@ export default function ShopByCategory({
   if (tiles.length <= 2) return null;
 
   return (
-    <section ref={ref} className="section-padding pt-16 md:pt-24" style={{ background: "#faf7f4" }}>
+    <section ref={ref} className="section-padding pt-16 md:pt-24 bg-cream">
       <div className="max-w-7xl mx-auto">
         <motion.div
           variants={staggerContainer}
@@ -77,9 +77,9 @@ export default function ShopByCategory({
           className="text-center mb-12"
         >
           <motion.div variants={fadeUp} className="flex items-center justify-center gap-3 mb-5">
-            <div className="h-px w-10 bg-[#c9977a]" />
-            <span className="label-caps text-[#c9977a]">Browse</span>
-            <div className="h-px w-10 bg-[#c9977a]" />
+            <div className="h-px w-10 bg-rose-gold" />
+            <span className="label-caps text-rose-gold">Browse</span>
+            <div className="h-px w-10 bg-rose-gold" />
           </motion.div>
           <motion.h2
             variants={fadeUp}
@@ -113,12 +113,10 @@ export default function ShopByCategory({
                   transition={{ duration: 0.45, ease: ease.luxury }}
                   className={cn(
                     "relative block w-[76px] h-[76px] sm:w-[92px] sm:h-[92px] rounded-full overflow-hidden transition-shadow duration-500",
-                    selected ? "shadow-glow" : "shadow-soft"
+                    selected
+                      ? "shadow-glow outline outline-2 outline-offset-[3px] outline-rose-gold"
+                      : "shadow-soft outline outline-1 outline-offset-0 outline-[rgba(232,220,208,0.9)]"
                   )}
-                  style={{
-                    outline: selected ? "2px solid #c9977a" : "1px solid rgba(232,220,208,0.9)",
-                    outlineOffset: selected ? "3px" : "0px",
-                  }}
                 >
                   <Image
                     src={tile.image}
@@ -141,7 +139,7 @@ export default function ShopByCategory({
                 <span
                   className={cn(
                     "label-caps text-[9px] sm:text-[10px] text-center leading-tight transition-colors duration-300",
-                    selected ? "text-[#c9977a]" : "text-ink/55 group-hover:text-ink"
+                    selected ? "text-rose-gold" : "text-ink/55 group-hover:text-ink"
                   )}
                 >
                   {tile.label}
