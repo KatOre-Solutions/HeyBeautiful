@@ -53,14 +53,20 @@ const AuthBlade = forwardRef<HTMLDivElement, AuthBladeProps>(function AuthBlade(
     <div
       ref={ref}
       aria-hidden
+      // Drives the resting transform in `.auth-blade` (globals.css), which is
+      // what makes the blade correct before hydration.
+      data-mode={mode}
       className={[
         // Mobile: a full-width band pinned to the top. The extra 40px (SLANT) is
         // so the diagonal bottom edge still clears the card's own bottom when the
         // band dips to full cover.
         "absolute inset-x-0 top-0 h-[calc(100%+40px)]",
-        // Desktop: a tall blade wider than the card, resting to one side.
-        "lg:inset-y-0 lg:left-0 lg:right-auto lg:h-auto lg:w-[118%]",
-        "auth-blade-clip z-20 pointer-events-none will-change-transform",
+        // Desktop: a tall blade wider than the card, resting to one side. 132%,
+        // not 118% — see the geometry note in useBladeTransition.ts; below ~128%
+        // the clipped shape cannot cover both corners at once and the card shows
+        // through during the swap.
+        "lg:inset-y-0 lg:left-0 lg:right-auto lg:h-auto lg:w-[132%]",
+        "auth-blade z-20 pointer-events-none will-change-transform",
       ].join(" ")}
       style={{ filter: "drop-shadow(0 20px 40px rgba(139,94,82,0.35))" }}
     >
@@ -87,8 +93,9 @@ const AuthBlade = forwardRef<HTMLDivElement, AuthBladeProps>(function AuthBlade(
         {/* `isolation` matters: without it the mix-blend overlay below composites
             against the blade's opaque gradient as well as the photo, which washes
             the artwork out completely. Isolating keeps the blend on the image. */}
-        {/* Mobile: the full-width band (BAND_H). Desktop: the vertical slice. */}
-        <div className="relative h-[240px] w-full overflow-hidden isolate lg:h-full lg:w-[41%]">
+        {/* Mobile: the full-width band (BAND_H). Desktop: the vertical slice —
+            36% of the 132%-wide blade, i.e. ~48% of the card. */}
+        <div className="relative h-[240px] w-full overflow-hidden isolate lg:h-full lg:w-[36%]">
           <Image
             src="/images/model-2.jpeg"
             alt=""

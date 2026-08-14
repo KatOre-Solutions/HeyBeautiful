@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
 import { fadeUp } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 import AuthForm from "./AuthForm";
 import FloatingInput from "./FloatingInput";
 import SocialAuthButtons from "./SocialAuthButtons";
@@ -208,14 +209,23 @@ export default function SignUpPane({
         style={{ fontFamily: "var(--font-manrope)", fontSize: "0.82rem" }}
       >
         Already a member?{" "}
-        <button
-          type="button"
-          onClick={() => requestSwitch("signin", signInHref)}
-          disabled={isTransitioning}
-          className="text-dusty-pink font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+        {/* See SignInPane — anchor for middle-click / new-tab / no-JS, click
+            handler for the blade sweep. */}
+        <Link
+          href={signInHref}
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
+            requestSwitch("signin", signInHref);
+          }}
+          aria-disabled={isTransitioning || undefined}
+          className={cn(
+            "text-dusty-pink font-medium hover:opacity-70 transition-opacity",
+            isTransitioning && "pointer-events-none opacity-40"
+          )}
         >
           Sign in
-        </button>
+        </Link>
       </motion.p>
     </AuthForm>
   );

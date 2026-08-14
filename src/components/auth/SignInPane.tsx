@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
 import { fadeUp } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 import AuthForm from "./AuthForm";
 import FloatingInput from "./FloatingInput";
 import SocialAuthButtons from "./SocialAuthButtons";
@@ -127,14 +128,24 @@ export default function SignInPane({
         style={{ fontFamily: "var(--font-manrope)", fontSize: "0.82rem" }}
       >
         New here?{" "}
-        <button
-          type="button"
-          onClick={() => requestSwitch("signup", "/signup")}
-          disabled={isTransitioning}
-          className="text-dusty-pink font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+        {/* A real anchor, so middle-click and open-in-new-tab still work and the
+            route is reachable without JS; the click handler takes over to play
+            the blade sweep instead of a plain navigation. */}
+        <Link
+          href="/signup"
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
+            requestSwitch("signup", "/signup");
+          }}
+          aria-disabled={isTransitioning || undefined}
+          className={cn(
+            "text-dusty-pink font-medium hover:opacity-70 transition-opacity",
+            isTransitioning && "pointer-events-none opacity-40"
+          )}
         >
           Create an account
-        </button>
+        </Link>
       </motion.p>
     </AuthForm>
   );

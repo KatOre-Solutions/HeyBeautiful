@@ -7,22 +7,32 @@ import { ease } from "@/lib/motion";
 import type { AuthMode } from "./AuthTransitionContext";
 
 /**
- * Blade geometry.
+ * Blade geometry (desktop).
  *
- * The blade element is deliberately wider than the card (118%): to reach full
- * cover it must span the whole card *plus* the horizontal run of its diagonal
- * edges, so at either rest position most of it hangs off-canvas, clipped by the
- * card's `overflow-hidden`. Percentages below are of the blade's own width —
- * 1% of card width == 100/118 == 0.847% of blade width.
+ * The blade is wider than the card (132%, `lg:w-[132%]`) because "cover" has to
+ * span the card *plus* the horizontal run of both diagonal edges. The clip is
+ * `polygon(11% 0%, 100% 0%, 89% 100%, 0% 100%)`, so the painted shape leans:
+ * its top edge starts 11% in from the left, its bottom edge stops 11% short of
+ * the right. Covering the top-left needs `t ≤ -11%`; covering the bottom-right
+ * needs `t ≥ -13.2%`. Those only overlap once the blade is ≥128% of card width —
+ * at the original 118% they were contradictory and the card showed through a
+ * triangle at each corner during the swap.
  *
- *   signin  blade spans card [0%, 48%]   → form sits on the right
- *   cover   blade spans card [-9%, 109%] → card fully hidden
- *   signup  blade spans card [52%, 100%] → form sits on the left
+ * Percentages are of the blade's own width; 1% of card == 100/132 == 0.758% of
+ * blade. At either rest position most of the blade hangs off-canvas, clipped by
+ * the card's `overflow-hidden`.
+ *
+ *   signin  painted edge runs card 55%→41% → form sits on the right
+ *   cover   painted shape spans card -1%→102% → card fully hidden
+ *   signup  painted edge runs card 59%→45% → form sits on the left
+ *
+ * ⚠ Mirrored in `.auth-blade` (globals.css), which owns the resting position so
+ * it is correct before hydration. Change one, change both.
  */
 export const BLADE_X: Record<AuthMode | "cover", string> = {
-  signin: "-59%",
-  cover: "-8%",
-  signup: "44%",
+  signin: "-58%",
+  cover: "-12%",
+  signup: "34%",
 };
 
 /**
@@ -32,11 +42,11 @@ export const BLADE_X: Record<AuthMode | "cover", string> = {
  * treatment look like it's flowing across the artwork.
  *
  * Values place the wrapper's *left* edge (the copy is left-aligned within it) at
- * the left edge of the visible slice: card 0% for signin, card 52% for signup.
+ * the left edge of the visible slice.
  */
 export const CONTENT_X: Record<AuthMode | "cover", string> = {
-  signin: "59%",
-  cover: "8%",
+  signin: "58%",
+  cover: "12%",
   signup: "0%",
 };
 
@@ -62,13 +72,32 @@ export const SLANT = 40;
  * At rest the blade is lifted so its bottom edge lands at BAND_H; at cover it
  * sits at 0 and spans the whole card. The copy counter-translates exactly, the
  * same trick the desktop axis uses to hold it inside the visible slice.
+ *
+ * Rest here is the px equivalent of the CSS `translateY(calc(-100% + 240px))`,
+ * since the blade's height is the card's plus SLANT.
  */
 export function mobileTargets(cardHeight: number) {
   const rest = BAND_H - cardHeight - SLANT;
-  return {
-    blade: { rest: `${rest}px`, cover: "0px" },
-    content: { rest: `${-rest}px`, cover: "0px" },
-  };
+  return { bladeRest: rest, contentRest: -rest };
+}
+
+/** Current translate of an element, in px, as the browser actually has it. */
+function currentTranslate(el: HTMLElement) {
+  const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+  return { x: m.m41, y: m.m42 };
+}
+
+/**
+ * Hands positioning back to `.auth-blade` in globals.css.
+ *
+ * Rest is defined there so it survives SSR and re-resolves whenever the card
+ * changes height. Clearing the inline transform the animation left behind is
+ * what lets that happen — otherwise a fixed px value would be frozen over it.
+ * Safe to do without a visible jump because the animation's final value is the
+ * same position the CSS resolves to.
+ */
+function releaseToCss(...els: (HTMLElement | null)[]) {
+  for (const el of els) if (el) el.style.transform = "";
 }
 
 const SWEEP_DURATION = 0.55;
@@ -148,36 +177,61 @@ export function useBladeTransition({
         const options = { duration: SWEEP_DURATION, ease: ease.cinematic };
 
         /**
-         * Both axes are always written, never just the active one. Framer reads
-         * the element's current transform, so animating only `y` while a stale
-         * `translateX` is still on the blade (i.e. right after crossing the
-         * breakpoint) would compose the two and park it off-card.
+         * Everything is resolved to px, on both axes, every time.
          *
-         * Mobile is measured at call time, not cached: the card's height changes
-         * between sign-in and sign-up, so the rest position is only correct if
-         * it's recomputed for the pane that's actually on screen.
+         * px because the start point is read back off the DOM (see the sync
+         * below) and mixing units mid-interpolation is not reliable. Both axes
+         * because framer composes a single transform — leaving the idle axis out
+         * would let a stale value from the other breakpoint survive a rotation.
+         *
+         * Mobile is measured at call time, not cached: the card's height differs
+         * between sign-in and sign-up, so rest is only right if it's recomputed
+         * for the pane actually on screen.
          */
         const targetsFor = (position: AuthMode | "cover") => {
           if (isDesktop) {
+            const w = blade.getBoundingClientRect().width;
+            const pct = (v: string) => (parseFloat(v) / 100) * w;
             return {
-              blade: { x: BLADE_X[position], y: 0 },
-              content: { x: CONTENT_X[position], y: 0 },
+              blade: { x: pct(BLADE_X[position]), y: 0 },
+              content: { x: pct(CONTENT_X[position]), y: 0 },
             };
           }
           const cardHeight = cardRef.current?.getBoundingClientRect().height ?? 0;
           const t = mobileTargets(cardHeight);
-          const key = position === "cover" ? "cover" : "rest";
+          const atCover = position === "cover";
           return {
-            blade: { x: 0, y: t.blade[key] },
-            content: { x: 0, y: t.content[key] },
+            blade: { x: 0, y: atCover ? 0 : t.bladeRest },
+            content: { x: 0, y: atCover ? 0 : t.contentRest },
           };
         };
 
-        // Phase 1 — sweep (desktop) or dip (mobile) to full cover.
+        /**
+         * Phase 1 — sweep (desktop) or dip (mobile) to full cover.
+         *
+         * The start point is passed as an explicit `[from, to]` keyframe pair
+         * read off the DOM, rather than letting framer infer it. framer caches a
+         * motion value per element on first `animate()` and interpolates from
+         * that cache, not from the element; because rest is owned by CSS — and
+         * re-resolves on its own whenever the card changes height — the cache
+         * goes stale between transitions. Inferring the start made the blade
+         * jump to its last animated value on the first frame and ease from
+         * there. Seeding with a zero-duration `animate()` does not fix it (the
+         * write does not win over the cache); an explicit first keyframe does.
+         */
+        const from = { blade: currentTranslate(blade), content: currentTranslate(content) };
         const cover = targetsFor("cover");
         await Promise.all([
-          animate(blade, cover.blade, options).finished,
-          animate(content, cover.content, options).finished,
+          animate(
+            blade,
+            { x: [from.blade.x, cover.blade.x], y: [from.blade.y, cover.blade.y] },
+            options
+          ).finished,
+          animate(
+            content,
+            { x: [from.content.x, cover.content.x], y: [from.content.y, cover.content.y] },
+            options
+          ).finished,
         ]);
 
         // Phase 2 — swap the route while the card is hidden, then wait for the
@@ -208,6 +262,10 @@ export function useBladeTransition({
           animate(blade, rest.blade, options).finished,
           animate(content, rest.content, options).finished,
         ]);
+
+        // Settled on rest — let CSS own the position again so it keeps tracking
+        // the card's height from here.
+        releaseToCss(blade, content);
       } finally {
         // Any throw or early return still has to release the lock — a stuck
         // blade would block the whole card.

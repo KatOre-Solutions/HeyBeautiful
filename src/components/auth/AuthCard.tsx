@@ -1,17 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { AuthTransitionProvider, type AuthMode } from "./AuthTransitionContext";
-import {
-  BLADE_X,
-  CONTENT_X,
-  getBladeContent,
-  mobileTargets,
-  useBladeTransition,
-} from "./useBladeTransition";
+import { useBladeTransition } from "./useBladeTransition";
 import { useIsDesktop } from "./useIsDesktop";
 import AuthBlade from "./AuthBlade";
 
@@ -42,52 +36,15 @@ export default function AuthCard({ children }: { children: ReactNode }) {
   });
 
   /**
-   * Parks the blade at rest for the current mode and viewport. The transform is
-   * written whole (never a single axis) so switching breakpoints can't leave a
-   * stale translate on the other axis.
+   * There is deliberately no parking code here. The blade's resting position is
+   * owned by `.auth-blade` in globals.css, keyed off `data-mode` and the `lg`
+   * media query. That means it is already correct on the server-rendered paint
+   * — an inline transform set from an effect lands after hydration, and until
+   * then the blade sat untransformed on top of the form — and it re-resolves by
+   * itself whenever the card changes height, since the percentage is relative to
+   * the blade's own box. The transition writes inline transforms while it runs
+   * and clears them when it settles.
    */
-  const park = useCallback(() => {
-    const blade = bladeRef.current;
-    const content = getBladeContent(blade);
-    if (!blade || !content) return;
-
-    if (isDesktop) {
-      blade.style.transform = `translateX(${BLADE_X[mode]})`;
-      content.style.transform = `translateX(${CONTENT_X[mode]})`;
-      return;
-    }
-
-    const cardHeight = cardRef.current?.getBoundingClientRect().height ?? 0;
-    const t = mobileTargets(cardHeight);
-    blade.style.transform = `translateY(${t.blade.rest})`;
-    content.style.transform = `translateY(${t.content.rest})`;
-  }, [isDesktop, mode]);
-
-  // Park before first paint, so a direct load of either route never flashes the
-  // blade mid-sweep. Runs on every settled render rather than only on mode change:
-  // these transforms are applied imperatively, so if React ever recreates the
-  // nodes they'd otherwise come back untransformed. Mid-transition the hook owns
-  // them, hence the guard.
-  useLayoutEffect(() => {
-    if (isTransitioning) return;
-    park();
-  });
-
-  /**
-   * Mobile rest depends on the card's measured height, which can change without
-   * a React render — image decode, font swap, rotation, an inline field error
-   * appearing. Without this the band drifts away from the top of the card.
-   */
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card || isDesktop) return;
-    const observer = new ResizeObserver(() => {
-      if (isTransitioning) return;
-      park();
-    });
-    observer.observe(card);
-    return () => observer.disconnect();
-  }, [isDesktop, isTransitioning, park]);
 
   // Imperative navigation gets no automatic <Link> prefetch, so warm both routes.
   useEffect(() => {
@@ -101,25 +58,30 @@ export default function AuthCard({ children }: { children: ReactNode }) {
     >
       <section
         ref={cardRef}
-        className="relative w-full rounded-2xl overflow-hidden bg-off-white lg:w-[min(1200px,94vw)] lg:min-h-[720px] lg:rounded-[28px]"
+        className="relative w-full rounded-2xl overflow-hidden bg-off-white lg:w-[min(1200px,94vw)] lg:rounded-[28px]"
         style={{ boxShadow: "0 30px 80px rgba(30,24,20,0.16)" }}
       >
-        {/* Form slot.
-            Mobile: in normal flow beneath the band, so the card grows with the
-            form — as an absolute child it contributed no height and a tall signup
-            form was clipped by `overflow-hidden` rather than scrolling.
-            Desktop: absolute, and mirrors sides with the blade so the swap reads
-            as a genuine left/right flip rather than a curtain over a fixed layout.
-            Top padding clears the band (BAND_H + breathing room). */}
+        {/* Form slot — in normal flow at every breakpoint, so the card always
+            grows with the form instead of clipping it.
+            As an absolute child it contributed no height, and the card's fixed
+            720px was only ~30px clear of the signup form: adding the password
+            strength meter and three inline validation errors pushed it to 766px,
+            which `overflow-hidden` then cut at both ends — taking the heading off
+            the top and the "Already a member?" toggle off the bottom, exactly
+            when a user had made a mistake.
+            Mobile stacks under the band (top padding clears BAND_H). Desktop
+            keeps the mirrored composition by padding the side the blade rests
+            on, and `lg:min-h-[720px]` lives here rather than on the card so the
+            slot can both hold the floor and grow past it. */}
         <div
           className={cn(
             "relative px-6 pb-12 pt-[272px] sm:px-8",
-            "lg:absolute lg:inset-0 lg:flex lg:items-center lg:px-16 lg:py-16",
-            mode === "signin" ? "lg:justify-end" : "lg:justify-start",
+            "lg:flex lg:items-center lg:min-h-[720px] lg:py-16 lg:pt-16",
+            mode === "signin" ? "lg:pl-[54%] lg:pr-16" : "lg:pr-[54%] lg:pl-16",
             isTransitioning && "pointer-events-none"
           )}
         >
-          <div className="w-full max-w-sm mx-auto lg:w-[42%] lg:max-w-none lg:mx-0">{children}</div>
+          <div className="w-full max-w-sm mx-auto lg:mx-0">{children}</div>
         </div>
 
         <AuthBlade ref={bladeRef} mode={mode} />
