@@ -170,11 +170,11 @@ export default function SignUpPane({
               style={{ fontFamily: "var(--font-manrope)", fontSize: "0.78rem" }}
             >
               I agree to the{" "}
-              <Link href="#" className="text-dusty-pink hover:opacity-70">
+              <Link href="#" className="text-rose-dark hover:opacity-70">
                 Terms
               </Link>{" "}
               &{" "}
-              <Link href="#" className="text-dusty-pink hover:opacity-70">
+              <Link href="#" className="text-rose-dark hover:opacity-70">
                 Privacy Policy
               </Link>
             </span>
@@ -220,7 +220,7 @@ export default function SignUpPane({
           }}
           aria-disabled={isTransitioning || undefined}
           className={cn(
-            "text-dusty-pink font-medium hover:opacity-70 transition-opacity",
+            "text-rose-dark font-medium hover:opacity-70 transition-opacity",
             isTransitioning && "pointer-events-none opacity-40"
           )}
         >

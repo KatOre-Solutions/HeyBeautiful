@@ -29,7 +29,7 @@ export default function AuthForm({
         {subtitle && (
           <motion.p
             variants={shimmerLine}
-            className="label-caps text-dusty-pink mb-3"
+            className="label-caps text-rose-dark mb-3"
           >
             {subtitle}
           </motion.p>

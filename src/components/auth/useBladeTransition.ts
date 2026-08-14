@@ -26,8 +26,8 @@ import type { AuthMode } from "./AuthTransitionContext";
  *   cover   painted shape spans card -1%→102% → card fully hidden
  *   signup  painted edge runs card 59%→45% → form sits on the left
  *
- * ⚠ Mirrored in `.auth-blade` (globals.css), which owns the resting position so
- * it is correct before hydration. Change one, change both.
+ * ⚠ Mirrored in the `.auth-blade` rules in globals.css, which own the resting
+ * position so it is correct before hydration. Change one, change both.
  */
 export const BLADE_X: Record<AuthMode | "cover", string> = {
   signin: "-58%",
@@ -234,9 +234,20 @@ export function useBladeTransition({
           ).finished,
         ]);
 
-        // Phase 2 — swap the route while the card is hidden, then wait for the
-        // incoming pane to actually be up. Racing a watchdog so a failed or
-        // cancelled navigation can't strand the blade over the card.
+        /**
+         * Phase 2 — swap the route while the card is hidden, then wait for the
+         * incoming pane to actually be up. Racing a watchdog so a failed or
+         * cancelled navigation can't strand the blade over the card.
+         *
+         * `replace`, deliberately, so toggling back and forth doesn't fill the
+         * history stack. Note this diverges from the `<Link href>` the toggle
+         * renders: a middle-click or a no-JS click follows the anchor and
+         * pushes. The visible consequence of replace is that Back skips the
+         * form you came from — e.g. /checkout → /login?from=/checkout → "Create
+         * an account" → Back leaves the auth flow rather than returning to
+         * sign-in. That trade is intended; the anchor is kept because it's what
+         * makes the toggle work without JS and in a new tab.
+         */
         router.replace(href);
 
         let watchdog: ReturnType<typeof setTimeout> | undefined;
@@ -244,6 +255,14 @@ export function useBladeTransition({
           waitForPaneReady(nextMode),
           new Promise<void>((resolve) => {
             watchdog = setTimeout(() => {
+              // The pane we were waiting on never reported ready, so the mode
+              // recorded in mountedModeRef no longer describes anything mounted.
+              // Clearing it matters: left stale, a later switch *back* to that
+              // mode would hit the fast path in waitForPaneReady and resolve
+              // instantly, uncovering before the pane exists — the exact failure
+              // this handshake is here to prevent.
+              mountedModeRef.current = null;
+              pendingRef.current = null;
               if (process.env.NODE_ENV !== "production") {
                 console.warn(
                   `[AuthCard] "${nextMode}" pane did not report ready within ${READY_TIMEOUT_MS}ms; revealing anyway.`

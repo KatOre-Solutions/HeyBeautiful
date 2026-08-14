@@ -103,7 +103,7 @@ export default function SignInPane({
           </label>
           <Link
             href="/forgot-password"
-            className="text-dusty-pink hover:opacity-70 transition-opacity"
+            className="text-rose-dark hover:opacity-70 transition-opacity"
             style={{ fontFamily: "var(--font-manrope)", fontSize: "0.78rem" }}
           >
             Forgot password?
@@ -140,7 +140,7 @@ export default function SignInPane({
           }}
           aria-disabled={isTransitioning || undefined}
           className={cn(
-            "text-dusty-pink font-medium hover:opacity-70 transition-opacity",
+            "text-rose-dark font-medium hover:opacity-70 transition-opacity",
             isTransitioning && "pointer-events-none opacity-40"
           )}
         >

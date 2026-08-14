@@ -27,11 +27,21 @@ function getSnapshot() {
 }
 
 /**
- * Server snapshot. Nothing positions the blade during SSR — parking happens in a
- * layout effect — so this only sets the value for the first client render, which
- * `useSyncExternalStore` immediately reconciles against the real `matchMedia`
- * before paint. Using the store (rather than useState + useEffect) is what keeps
- * a wrong-axis park from flashing on load.
+ * Server snapshot.
+ *
+ * The value is arbitrary and safe *because nothing renders from `isDesktop`*.
+ * The blade's resting position is owned entirely by the `.auth-blade` rules in
+ * globals.css, so markup and first paint are correct at any width without this
+ * hook being right. It is read only inside `requestSwitch`, which runs on a user
+ * click — long after `useSyncExternalStore` has reconciled against the real
+ * `matchMedia` in a post-hydration commit.
+ *
+ * That ordering is worth being explicit about: the reconciliation lands *after*
+ * paint, not before it. An earlier version parked the blade from a layout effect
+ * using this value, and on a phone the hydration commit wrote the desktop axis
+ * for a frame. The fix was to stop rendering from it, not to make the snapshot
+ * cleverer — so if you ever drive layout or markup off `isDesktop`, this hook
+ * alone will not save you from a hydration flash.
  */
 function getServerSnapshot() {
   return true;

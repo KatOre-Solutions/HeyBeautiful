@@ -64,8 +64,11 @@ export default function FloatingInput({
             fontFamily: "var(--font-manrope)",
             color: error
               ? "rgba(239,68,68,0.8)"
+              // rose-dark, not dusty-pink: the floated label is 10px, and dusty
+              // pink on white only reaches ~3.5:1 against the 4.5:1 AA floor.
+              // Dusty pink stays on the border and focus glow, which aren't text.
               : floated
-              ? "rgba(180,119,146,0.9)"
+              ? "#8b5e52"
               : "rgba(30,24,20,0.4)",
             fontWeight: floated ? 500 : 400,
           }}

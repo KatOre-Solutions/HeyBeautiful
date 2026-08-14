@@ -83,18 +83,18 @@ const AuthBlade = forwardRef<HTMLDivElement, AuthBladeProps>(function AuthBlade(
       {/* Everything that must stay legible sits in here and is counter-translated
           by the transition, so it holds still inside the visible slice instead of
           drifting off with the blade's overhang. The artwork belongs in here too:
-          stretched across the full 118% blade it would be upscaled ~2x from a
-          688px-wide portrait source and wash out to flat colour.
+          stretched across the whole oversized blade it would be upscaled ~2x from
+          a 688px-wide portrait source and wash out to flat colour.
           Found by attribute rather than a second forwarded ref — the blade owns
           the only ref, and the transition resolves this from it. */}
       <div data-blade-content className="absolute inset-0 will-change-transform">
-        {/* Sized to the visible slice, which also happens to match the source's
-            portrait aspect almost exactly — so it crops and scales barely at all. */}
-        {/* `isolation` matters: without it the mix-blend overlay below composites
-            against the blade's opaque gradient as well as the photo, which washes
-            the artwork out completely. Isolating keeps the blend on the image. */}
         {/* Mobile: the full-width band (BAND_H). Desktop: the vertical slice —
-            36% of the 132%-wide blade, i.e. ~48% of the card. */}
+            36% of the 132%-wide blade, i.e. ~48% of the card, which also happens
+            to match the source's portrait aspect almost exactly, so it crops and
+            scales barely at all.
+            `isolate` matters: without it the blend layer below composites against
+            the blade's opaque gradient as well as the photo, which washes the
+            artwork out completely. Isolating keeps the blend on the image. */}
         <div className="relative h-[240px] w-full overflow-hidden isolate lg:h-full lg:w-[36%]">
           <Image
             src="/images/model-2.jpeg"
@@ -106,12 +106,11 @@ const AuthBlade = forwardRef<HTMLDivElement, AuthBladeProps>(function AuthBlade(
             sizes="(max-width: 1023px) 100vw, 576px"
           />
 
-          {/* `overlay` tints the artwork's own highlights and shadows rather than
-              painting over them, so the photograph stays visible underneath. */}
-          {/* soft-light, not overlay: the gradient's lightest stop is near-white,
-              and overlay blows the photograph out to a flat wash. soft-light tints
-              it while keeping the artwork readable. The second pass is a plain
-              translucent tint that carries the rose-gold hue itself. */}
+          {/* soft-light, not overlay: both tint the artwork's own highlights and
+              shadows rather than painting over them, but the gradient's lightest
+              stop is near-white and overlay blows the photograph out to a flat
+              wash. soft-light keeps it readable. The second pass is a plain
+              translucent tint carrying the rose-gold hue itself. */}
           <div className="absolute inset-0 bg-rose-gold-gradient opacity-85 mix-blend-soft-light" />
           <div className="absolute inset-0 bg-rose-gold-gradient opacity-[0.26]" />
           {/* Bottom scrim, purely for copy legibility. */}

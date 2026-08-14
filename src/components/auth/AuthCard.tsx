@@ -90,13 +90,20 @@ export default function AuthCard({ children }: { children: ReactNode }) {
             diagonal clips it away in signup, where the panel's top-left corner is
             the cut one.
             On mobile the band is always at the top, so this is always over rose
-            gold; only on desktop does it depend which side the blade rests. */}
+            gold; only on desktop does it depend which side the blade rests.
+            The ink variant is suppressed while a transition runs: `mode` flips at
+            the route swap, mid-cover, but this link paints above the blade — so
+            switching colour on `mode` alone put dark ink on top of the rose-gold
+            panel for the whole reveal. Staying light until the blade has settled
+            matches what is actually underneath it. */}
         <Link
           href="/"
           className={cn(
             "absolute top-6 left-6 lg:top-10 lg:left-10 z-30 label-caps transition-colors",
             "text-off-white/80 hover:text-off-white",
-            mode === "signup" && "lg:text-ink/50 lg:hover:text-dusty-pink"
+            mode === "signup" &&
+              !isTransitioning &&
+              "lg:text-ink/60 lg:hover:text-rose-dark"
           )}
         >
           ← Back to shop
