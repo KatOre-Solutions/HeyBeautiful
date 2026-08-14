@@ -47,14 +47,8 @@ export default function ForgotPasswordContent() {
               animate="visible"
               className="flex flex-col items-center text-center py-4"
             >
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
-                style={{
-                  background: "rgba(201,151,122,0.1)",
-                  border: "1px solid rgba(201,151,122,0.25)",
-                }}
-              >
-                <CheckCircle size={32} className="text-rose-gold" />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5 bg-soft-tan border border-dusty-pink/25">
+                <CheckCircle size={32} className="text-dusty-pink" />
               </div>
               <h3
                 className="text-ink mb-2"
@@ -99,12 +93,7 @@ export default function ForgotPasswordContent() {
                 disabled={loading}
                 whileHover={{ scale: loading ? 1 : 1.015 }}
                 whileTap={{ scale: loading ? 1 : 0.98 }}
-                className="w-full py-4 rounded-full text-white font-semibold text-[11px] tracking-[0.13em] uppercase disabled:opacity-70"
-                style={{
-                  background: "#c9977a",
-                  fontFamily: "var(--font-manrope)",
-                  boxShadow: "0 6px 24px rgba(201,151,122,0.38)",
-                }}
+                className="btn-primary-gradient w-full py-4 disabled:opacity-70"
               >
                 {loading ? "Sending…" : "Send Reset Link"}
               </motion.button>
@@ -112,7 +101,7 @@ export default function ForgotPasswordContent() {
               <motion.div variants={fadeUp} className="text-center">
                 <Link
                   href="/login"
-                  className="text-ink/50 hover:text-rose-gold transition-colors"
+                  className="text-ink/50 hover:text-dusty-pink transition-colors"
                   style={{ fontFamily: "var(--font-manrope)", fontSize: "0.82rem" }}
                 >
                   ← Back to Sign In

@@ -146,6 +146,21 @@
     transform: translateY(-1px);
   }
 
+  /* Rose Gold Gradient CTA. Separate from .btn-primary, which stays a flat fill —
+     it's used site-wide and shouldn't become a gradient everywhere. Hover shifts the
+     gradient position for a brightness/depth change rather than a colour change. */
+  .btn-primary-gradient {
+    @apply btn-luxury text-white bg-rose-gold-gradient-button;
+    background-size: 160% 100%;
+    box-shadow: 0 6px 24px rgba(180, 119, 146, 0.38);
+  }
+
+  .btn-primary-gradient:hover {
+    background-position: 100% 0;
+    box-shadow: 0 10px 32px rgba(180, 119, 146, 0.5);
+    transform: translateY(-1px);
+  }
+
   .btn-glass {
     @apply btn-luxury glass text-white border-white/30;
   }

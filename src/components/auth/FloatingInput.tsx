@@ -39,14 +39,16 @@ export default function FloatingInput({
           error
             ? "border-red-300"
             : focused
-            ? "border-[#c9977a]"
+            ? "border-dusty-pink"
             : "border-[rgba(232,220,208,1)]"
         )}
         style={{
+          // A hairline gradient border would be imperceptible — the gradient is
+          // carried by the soft glow instead.
           boxShadow: error
             ? "0 0 0 3px rgba(239,68,68,0.1)"
             : focused
-            ? "0 0 0 3px rgba(201,151,122,0.12)"
+            ? "0 0 0 6px rgba(180,119,146,0.1)"
             : "none",
         }}
       >
@@ -63,7 +65,7 @@ export default function FloatingInput({
             color: error
               ? "rgba(239,68,68,0.8)"
               : floated
-              ? "rgba(201,151,122,0.9)"
+              ? "rgba(180,119,146,0.9)"
               : "rgba(30,24,20,0.4)",
             fontWeight: floated ? 500 : 400,
           }}

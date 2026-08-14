@@ -44,6 +44,15 @@ const config: Config = {
         parchment: "#f0ebe3",
         // Primary text/ink brown — used site-wide for headings and body copy.
         ink: "#1e1814",
+        // Official brand palette (auth screens). Deliberately separate tokens from
+        // cream/parchment above — the values are close but not identical.
+        "dusty-pink": "#b47792",
+        "off-white": "#fff9f9",
+        "soft-tan": "#fdf0ec",
+        "dark-emerald": "#45563b",
+        // Named `auth-royal`, not folded into the `royal` scale below: that scale is a
+        // different (brighter) blue reserved site-wide, and this one must not displace it.
+        "auth-royal": "#3b4a78",
         // Royal blue accent
         royal: {
           50: "#eff3ff",
@@ -71,6 +80,17 @@ const config: Config = {
           "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.55) 100%)",
         "card-shimmer":
           "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%)",
+        // Rose Gold Gradient — the primary brand expression. Wide/soft for large
+        // surfaces (the auth blade, overlays).
+        "rose-gold-gradient":
+          "linear-gradient(135deg, #faf7f4 0%, #f5ddd5 24%, #c9977a 54%, #b47792 78%, #8b5e52 100%)",
+        // Tighter, richer variant sized so white label text stays legible on top.
+        "rose-gold-gradient-button":
+          "linear-gradient(135deg, #c9977a 0%, #b47792 55%, #8b5e52 100%)",
+        // Diagonal metallic highlight, swept across the blade to read as polished
+        // metal rather than a printed gradient.
+        "rose-gold-sheen":
+          "linear-gradient(115deg, transparent 38%, rgba(255,249,249,0.65) 48%, rgba(255,249,249,0.2) 54%, transparent 66%)",
       },
       backdropBlur: {
         xs: "2px",
@@ -84,6 +104,7 @@ const config: Config = {
         "luxury-hover": "0 30px 80px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.06)",
         soft: "0 2px 20px rgba(0,0,0,0.06)",
         glow: "0 0 40px rgba(201,151,122,0.3)",
+        "glow-rose-gold": "0 0 48px rgba(180,119,146,0.35)",
       },
       animation: {
         "float": "float 6s ease-in-out infinite",

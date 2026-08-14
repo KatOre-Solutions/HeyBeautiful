@@ -101,11 +101,11 @@ export default function SocialAuthButtons({
 
       {/* Divider */}
       <div className="flex items-center gap-3 my-1">
-        <div className="flex-1 h-px" style={{ background: "rgba(201,151,122,0.25)" }} />
+        <div className="flex-1 h-px" style={{ background: "rgba(180,119,146,0.25)" }} />
         <span className="label-caps text-[#1e1814]/40" style={{ fontSize: "9px" }}>
           {dividerLabel}
         </span>
-        <div className="flex-1 h-px" style={{ background: "rgba(201,151,122,0.25)" }} />
+        <div className="flex-1 h-px" style={{ background: "rgba(180,119,146,0.25)" }} />
       </div>
     </motion.div>
   );
