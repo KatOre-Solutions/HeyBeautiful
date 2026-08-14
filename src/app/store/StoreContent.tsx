@@ -1,96 +1,85 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
-import { fadeUp, staggerContainer, staggerContainerSlow } from "@/lib/motion";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { motion, useInView, useReducedMotion } from "framer-motion";
+import { fadeUp, staggerContainer } from "@/lib/motion";
 import { bundles } from "@/lib/products";
-import ShopifyProductCard from "@/components/ShopifyProductCard";
+import { getShowcaseProducts, type ShopifyProduct } from "@/lib/product";
 import BundleCard from "@/components/BundleCard";
-import type { ShopifyProduct } from "@/lib/product";
+import BrandStory from "@/components/sections/BrandStory";
+import { NAVBAR_ID } from "@/components/Navbar";
+import StoreHero from "./sections/StoreHero";
+import ShopByCategory, { ALL_CATEGORIES, buildCategoryTiles } from "./sections/ShopByCategory";
+import FeaturedShowcase from "./sections/FeaturedShowcase";
+import FullCollection, { COLLECTION_ID } from "./sections/FullCollection";
+import EditorialCards from "./sections/EditorialCards";
 
+/** Breathing room below the navbar's rendered bottom edge, on top of its measured height. */
+const SCROLL_GAP = 16;
+
+/**
+ * Composition, plus the page's single piece of state. Every section is
+ * presentational and reads products from props, so the store never knows or
+ * cares whether the catalogue came from Shopify or the development source (#68).
+ *
+ * The category filter deliberately reaches only `FullCollection`.
+ * `FeaturedShowcase` is a curated shelf and stays put — see the note in that file.
+ */
 export default function StoreContent({ products }: { products: ShopifyProduct[] }) {
+  const reducedMotion = useReducedMotion();
+  const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORIES);
   const bundlesRef = useRef<HTMLDivElement>(null);
   const bundlesInView = useInView(bundlesRef, { once: true, margin: "-80px" });
 
+  const tiles = useMemo(() => buildCategoryTiles(products), [products]);
+  // Three, to fill the showcase's 3-col grid exactly rather than orphaning one.
+  const showcase = useMemo(() => getShowcaseProducts(products, 3), [products]);
+
+  /**
+   * Scrolls the collection under the fixed navbar.
+   *
+   * `scrollTo` with an explicit offset rather than `scrollIntoView` +
+   * `scroll-margin-top`: it passes an explicit behaviour instead of inheriting
+   * the `html { scroll-behavior: smooth }` in globals.css. The offset is the
+   * navbar's own measured height rather than a hardcoded constant, so it can't
+   * drift out of sync with Navbar's padding/logo size.
+   */
+  const scrollToCollection = useCallback(() => {
+    const el = document.getElementById(COLLECTION_ID);
+    if (!el) return;
+    const navbar = document.getElementById(NAVBAR_ID);
+    const navbarOffset = navbar ? navbar.getBoundingClientRect().bottom : 0;
+    const top = el.getBoundingClientRect().top + window.scrollY - navbarOffset - SCROLL_GAP;
+    window.scrollTo({ top, behavior: reducedMotion ? "instant" : "smooth" });
+  }, [reducedMotion]);
+
+  const handleSelectCategory = useCallback(
+    (value: string) => {
+      setActiveCategory(value);
+      scrollToCollection();
+    },
+    [scrollToCollection]
+  );
+
+  const clearCategory = useCallback(() => setActiveCategory(ALL_CATEGORIES), []);
+
   return (
     <>
-      {/* Page header — extra top padding clears the fixed navbar (no hero here) */}
-      <section
-        className="section-padding pt-32 pb-12 md:pt-40 md:pb-16"
-        style={{ background: "#faf7f4" }}
-      >
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="max-w-7xl mx-auto text-center"
-        >
-          <motion.div variants={fadeUp} className="flex items-center justify-center gap-3 mb-6">
-            <div className="h-px w-10 bg-[#c9977a]" />
-            <span className="label-caps text-[#c9977a]">The Store</span>
-            <div className="h-px w-10 bg-[#c9977a]" />
-          </motion.div>
+      <StoreHero onShopClick={scrollToCollection} />
+      <ShopByCategory tiles={tiles} active={activeCategory} onSelect={handleSelectCategory} />
+      <FeaturedShowcase products={showcase} />
+      <FullCollection
+        products={products}
+        activeCategory={activeCategory}
+        onClear={clearCategory}
+      />
+      <EditorialCards />
+      <BrandStory />
 
-          <motion.h1
-            variants={fadeUp}
-            className="heading-display text-[#1e1814]"
-            style={{
-              fontFamily: "var(--font-cormorant)",
-              fontSize: "clamp(2.5rem, 5vw, 4.5rem)",
-            }}
-          >
-            Shop the Full Collection
-          </motion.h1>
-
-          <motion.p
-            variants={fadeUp}
-            className="mt-4 text-[#1e1814]/55 max-w-md mx-auto leading-relaxed"
-            style={{ fontSize: "0.95rem", fontWeight: 300 }}
-          >
-            Every formula, every ritual — crafted to fuel your strength and keep your glow.
-          </motion.p>
-        </motion.div>
-      </section>
-
-      {/* All products */}
-      <section className="section-padding pb-20 md:pb-28" style={{ background: "#faf7f4" }}>
-        {products.length === 0 ? (
-          <p
-            className="max-w-7xl mx-auto text-center text-ink/55"
-            style={{ fontSize: "0.95rem", fontWeight: 300 }}
-          >
-            Our collection is being restocked — check back shortly.
-          </p>
-        ) : (
-          <motion.div
-            variants={staggerContainerSlow}
-            initial="hidden"
-            animate="visible"
-            className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
-          >
-            {/* The first row is above the fold on desktop (lg:grid-cols-4); on mobile
-                grid-cols-2 makes it the first two rows, also at the fold. Eager-load
-                those so the LCP image isn't lazy; the rest stay lazy. */}
-            {products.map((product, index) => (
-              <ShopifyProductCard
-                key={product.id}
-                product={product}
-                variant="store"
-                priority={index < 4}
-              />
-            ))}
-          </motion.div>
-        )}
-      </section>
-
-      {/* Bundles */}
+      {/* Bundles — unchanged merchandising, still hardcoded (see #65). */}
       <section
         ref={bundlesRef}
-        className="section-py section-padding"
-        style={{
-          background:
-            "linear-gradient(180deg, #faf7f4 0%, #f0ebe3 50%, #faf7f4 100%)",
-        }}
+        className="section-py section-padding bg-gradient-to-b from-cream via-parchment to-cream"
       >
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -100,14 +89,14 @@ export default function StoreContent({ products }: { products: ShopifyProduct[] 
             className="text-center mb-16"
           >
             <motion.div variants={fadeUp} className="flex items-center justify-center gap-3 mb-6">
-              <div className="h-px w-10 bg-[#c9977a]" />
-              <span className="label-caps text-[#c9977a]">Curated Bundles</span>
-              <div className="h-px w-10 bg-[#c9977a]" />
+              <div className="h-px w-10 bg-rose-gold" />
+              <span className="label-caps text-rose-gold">Curated Bundles</span>
+              <div className="h-px w-10 bg-rose-gold" />
             </motion.div>
 
             <motion.h2
               variants={fadeUp}
-              className="heading-display text-[#1e1814]"
+              className="heading-display text-ink"
               style={{
                 fontFamily: "var(--font-cormorant)",
                 fontSize: "clamp(2.5rem, 5vw, 4.5rem)",
@@ -118,7 +107,7 @@ export default function StoreContent({ products }: { products: ShopifyProduct[] 
 
             <motion.p
               variants={fadeUp}
-              className="mt-4 text-[#1e1814]/55 max-w-md mx-auto leading-relaxed"
+              className="mt-4 text-ink/55 max-w-md mx-auto leading-relaxed"
               style={{ fontSize: "0.95rem", fontWeight: 300 }}
             >
               Thoughtfully paired formulas that work synergistically, so you get

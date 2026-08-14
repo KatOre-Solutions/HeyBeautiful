@@ -9,6 +9,9 @@ import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
+/** DOM id of the fixed navbar's glass pill, so other components can measure its rendered height instead of hardcoding it. */
+export const NAVBAR_ID = "site-navbar";
+
 const navLinks = [
   { label: "Store", href: "/store" },
   // Route-aware anchors so they scroll to the homepage section from any page.
@@ -47,7 +50,7 @@ export default function Navbar() {
         transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
       >
         {/* Glassmorphism panel — always visible, dark on hero, warm on content */}
-        <div className="relative mx-4 md:mx-8 lg:mx-12 mt-4">
+        <div id={NAVBAR_ID} className="relative mx-4 md:mx-8 lg:mx-12 mt-4">
           <motion.div
             animate={
               isHero

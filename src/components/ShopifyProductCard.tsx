@@ -89,8 +89,13 @@ function WishlistHeart({ product }: { product: ShopifyProduct }) {
   );
 }
 
-/** Which grid this card sits in. Decides the `sizes` hint — nothing else. */
-type CardVariant = "store" | "featured";
+/**
+ * Which grid this card sits in. Decides two things and only two: the `sizes`
+ * hint (see `SIZES`) and the body's typographic scale (see `PRESENTATION`).
+ * Behaviour — links, wishlist, quick-add, sold-out, pricing — is identical
+ * across all three, deliberately: there is one card, not three.
+ */
+type CardVariant = "store" | "featured" | "showcase";
 
 /**
  * Column widths, derived from the grid each card sits in. One string can't serve
@@ -113,6 +118,28 @@ const SIZES: Record<CardVariant, string> = {
   //   >=1504 grid caps at max-w-7xl (1280)                    -> (1280 - 96)/5 = 237
   featured:
     "(max-width: 767px) calc(50vw - 32px), (max-width: 1023px) calc(33.33vw - 48px), (max-width: 1279px) calc(20vw - 51px), (max-width: 1503px) calc(20vw - 64px), 237px",
+  //   <768   2 cols, gap-4 (16), section-padding px-6  (2*24) -> (100vw - 48 - 16)/2
+  //   <1024  3 cols, gap-6 (24), px-12 (2*48)                 -> (100vw - 96 - 48)/3
+  //   <1280  3 cols, gap-6 (24), px-20 (2*80)                 -> (100vw - 160 - 48)/3
+  //   <1504  3 cols, gap-6 (24), px-28 (2*112)                -> (100vw - 224 - 48)/3
+  //   >=1504 grid caps at max-w-7xl (1280)                    -> (1280 - 48)/3 = 411
+  showcase:
+    "(max-width: 767px) calc(50vw - 32px), (max-width: 1023px) calc(33.33vw - 48px), (max-width: 1279px) calc(33.33vw - 69px), (max-width: 1503px) calc(33.33vw - 91px), 411px",
+};
+
+/**
+ * Typographic scale per grid. The showcase sits three-up on a page whose
+ * collection grid is four-up, so its cards are physically wider — without a
+ * larger scale they read as the same card with more whitespace, which defeats
+ * the hierarchy the two grids exist to create.
+ */
+const PRESENTATION: Record<
+  CardVariant,
+  { body: string; title: string; price: string }
+> = {
+  store: { body: "p-5", title: "text-lg", price: "text-xl" },
+  featured: { body: "p-5", title: "text-lg", price: "text-xl" },
+  showcase: { body: "p-6 md:p-7", title: "text-xl md:text-2xl", price: "text-2xl" },
 };
 
 /**
@@ -142,6 +169,7 @@ export default function ShopifyProductCard({
 
   const soldOut = isSoldOut(product);
   const tags = displayTags(product);
+  const presentation = PRESENTATION[variant];
   // Placeholders have no Shopify variant to buy; sold-out products have none in
   // stock. Both keep the card's imagery but lose every purchase control.
   const purchasable = !product.placeholder && !soldOut;
@@ -283,11 +311,12 @@ export default function ShopifyProductCard({
       </div>
 
       {/* Card body */}
-      <div className="p-5">
+      <div className={presentation.body}>
         <p className="label-caps text-[#c9977a]/80 mb-1.5">{product.category}</p>
         <h3
           className={cn(
-            "heading-serif text-[#1e1814] text-lg leading-tight",
+            "heading-serif text-[#1e1814] leading-tight",
+            presentation.title,
             product.rating != null ? "mb-2" : "mb-4"
           )}
           style={{ fontFamily: "var(--font-cormorant)" }}
@@ -322,7 +351,7 @@ export default function ShopifyProductCard({
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <span
-              className="heading-serif text-xl text-[#1e1814]"
+              className={cn("heading-serif text-[#1e1814]", presentation.price)}
               style={{ fontFamily: "var(--font-cormorant)" }}
             >
               {formatPrice(product.price)}

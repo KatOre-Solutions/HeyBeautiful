@@ -26,8 +26,14 @@ const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "sr
 /** Product presentation ratio — must match the crop in normalize-images.mjs. */
 const PRODUCT_ASPECT_CLASS = "aspect-[4/5]";
 
-/** Cards eagerly loaded at the top of the store grid. Must match StoreContent. */
+/**
+ * Cards eagerly loaded at the top of the store grid. Must match the component
+ * that owns that grid — `FullCollection` since the #70 redesign, `StoreContent`
+ * before it. If the grid moves again, move this with it: the check is anchored to
+ * a filename precisely so a relocation can't quietly drop the eager row.
+ */
 const EAGER_STORE_CARDS = "priority={index < 4}";
+const STORE_GRID_FILE = /FullCollection\.tsx$/;
 
 /** How the shared card must forward eagerness. Must match ShopifyProductCard. */
 const CARD_PRIORITY_PROP = "priority={priority}";
@@ -39,6 +45,8 @@ const CARD_PRIORITY_PROP = "priority={priority}";
  */
 const STORE_SIZES_TAIL = "302px";
 const FEATURED_SIZES_TAIL = "237px";
+/** The store's featured showcase is 3-col — wider cards again (#70). */
+const SHOWCASE_SIZES_TAIL = "411px";
 
 const failures = [];
 const fail = (file, line, msg) => failures.push({ file, line, msg });
@@ -105,7 +113,7 @@ function checkProductAspect(file, src) {
  *   - FeaturedProducts never passes `priority` to the card at all.
  */
 function checkPriority(file, src) {
-  if (/StoreContent\.tsx$/.test(file) && !src.includes(EAGER_STORE_CARDS)) {
+  if (STORE_GRID_FILE.test(file) && !src.includes(EAGER_STORE_CARDS)) {
     fail(file, 1, `store grid must eager-load its first row via \`${EAGER_STORE_CARDS}\``);
   }
 
@@ -148,9 +156,9 @@ function checkPriority(file, src) {
  */
 function checkCardSizes(file, src) {
   if (!/ShopifyProductCard\.tsx$/.test(file)) return;
-  for (const tail of [STORE_SIZES_TAIL, FEATURED_SIZES_TAIL]) {
+  for (const tail of [STORE_SIZES_TAIL, FEATURED_SIZES_TAIL, SHOWCASE_SIZES_TAIL]) {
     if (!src.includes(tail)) {
-      fail(file, 1, `shared card is missing the \`${tail}\` column-width hint (store is 4-col, featured 5-col — one string can't serve both)`);
+      fail(file, 1, `shared card is missing the \`${tail}\` column-width hint (store 4-col, homepage featured 5-col, store showcase 3-col — one string can't serve all three)`);
     }
   }
 }
