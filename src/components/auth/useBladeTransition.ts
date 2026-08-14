@@ -40,6 +40,37 @@ export const CONTENT_X: Record<AuthMode | "cover", string> = {
   signup: "0%",
 };
 
+/**
+ * Mobile geometry (below `lg`).
+ *
+ * Portrait can't spare ~48% of its width to a diagonal panel, so below `lg` the
+ * blade becomes a band across the top and the motion rotates: it dips *down* to
+ * cover the card, the mode swaps underneath, and it retracts. Rest is the same
+ * position for both modes — there are no sides to flip between.
+ *
+ * Unlike the desktop percentages these are measured pixels, because the card's
+ * height is content-driven and differs between sign-in and sign-up.
+ *
+ * ⚠ BAND_H is duplicated as the form slot's top padding in AuthCard, and SLANT
+ * as the `40px` in `.auth-blade-clip` (globals.css) and the blade's extra height.
+ * Changing either means changing all three.
+ */
+export const BAND_H = 240;
+export const SLANT = 40;
+
+/**
+ * At rest the blade is lifted so its bottom edge lands at BAND_H; at cover it
+ * sits at 0 and spans the whole card. The copy counter-translates exactly, the
+ * same trick the desktop axis uses to hold it inside the visible slice.
+ */
+export function mobileTargets(cardHeight: number) {
+  const rest = BAND_H - cardHeight - SLANT;
+  return {
+    blade: { rest: `${rest}px`, cover: "0px" },
+    content: { rest: `${-rest}px`, cover: "0px" },
+  };
+}
+
 const SWEEP_DURATION = 0.55;
 
 /**
@@ -56,9 +87,13 @@ export function getBladeContent(blade: HTMLElement | null) {
 
 export function useBladeTransition({
   bladeRef,
+  cardRef,
+  isDesktop,
   mode,
 }: {
   bladeRef: RefObject<HTMLDivElement | null>;
+  cardRef: RefObject<HTMLElement | null>;
+  isDesktop: boolean;
   mode: AuthMode;
 }) {
   const router = useRouter();
@@ -112,10 +147,37 @@ export function useBladeTransition({
 
         const options = { duration: SWEEP_DURATION, ease: ease.cinematic };
 
-        // Phase 1 — sweep to full cover.
+        /**
+         * Both axes are always written, never just the active one. Framer reads
+         * the element's current transform, so animating only `y` while a stale
+         * `translateX` is still on the blade (i.e. right after crossing the
+         * breakpoint) would compose the two and park it off-card.
+         *
+         * Mobile is measured at call time, not cached: the card's height changes
+         * between sign-in and sign-up, so the rest position is only correct if
+         * it's recomputed for the pane that's actually on screen.
+         */
+        const targetsFor = (position: AuthMode | "cover") => {
+          if (isDesktop) {
+            return {
+              blade: { x: BLADE_X[position], y: 0 },
+              content: { x: CONTENT_X[position], y: 0 },
+            };
+          }
+          const cardHeight = cardRef.current?.getBoundingClientRect().height ?? 0;
+          const t = mobileTargets(cardHeight);
+          const key = position === "cover" ? "cover" : "rest";
+          return {
+            blade: { x: 0, y: t.blade[key] },
+            content: { x: 0, y: t.content[key] },
+          };
+        };
+
+        // Phase 1 — sweep (desktop) or dip (mobile) to full cover.
+        const cover = targetsFor("cover");
         await Promise.all([
-          animate(blade, { x: BLADE_X.cover }, options).finished,
-          animate(content, { x: CONTENT_X.cover }, options).finished,
+          animate(blade, cover.blade, options).finished,
+          animate(content, cover.content, options).finished,
         ]);
 
         // Phase 2 — swap the route while the card is hidden, then wait for the
@@ -139,10 +201,12 @@ export function useBladeTransition({
         ]);
         clearTimeout(watchdog);
 
-        // Phase 3 — reveal.
+        // Phase 3 — reveal. Measured now, after the swap, so mobile picks up the
+        // incoming pane's height rather than the outgoing one's.
+        const rest = targetsFor(nextMode);
         await Promise.all([
-          animate(blade, { x: BLADE_X[nextMode] }, options).finished,
-          animate(content, { x: CONTENT_X[nextMode] }, options).finished,
+          animate(blade, rest.blade, options).finished,
+          animate(content, rest.content, options).finished,
         ]);
       } finally {
         // Any throw or early return still has to release the lock — a stuck
@@ -151,7 +215,7 @@ export function useBladeTransition({
         setIsTransitioning(false);
       }
     },
-    [mode, reduceMotion, router, bladeRef, waitForPaneReady]
+    [mode, reduceMotion, router, bladeRef, cardRef, isDesktop, waitForPaneReady]
   );
 
   return { requestSwitch, isTransitioning, notifyPaneReady };

@@ -185,6 +185,26 @@
     @apply w-12 h-px bg-[#c9977a] origin-left;
   }
 
+  /* Auth blade silhouette.
+     This lives in CSS rather than an inline `style` because the shape has to
+     change at a breakpoint, and an inline style can't carry one. Mobile-first,
+     matching Tailwind's direction — and the 1024px here must stay in step with
+     the `lg:` classes on AuthCard/AuthBlade and the query in useIsDesktop.
+     The 40px vertical run is SLANT in useBladeTransition.ts; changing one means
+     changing the other. */
+  .auth-blade-clip {
+    /* Mobile: a band across the top, cut diagonally along its bottom edge. */
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 40px), 0 100%);
+  }
+
+  @media (min-width: 1024px) {
+    .auth-blade-clip {
+      /* Desktop: a parallelogram — both side edges slanted alike, so whichever
+         one is on-card at rest reads as the same diagonal. */
+      clip-path: polygon(11% 0%, 100% 0%, 89% 100%, 0% 100%);
+    }
+  }
+
   /* Product card */
   .product-card {
     @apply relative overflow-hidden rounded-2xl bg-white cursor-pointer;

@@ -53,11 +53,16 @@ const AuthBlade = forwardRef<HTMLDivElement, AuthBladeProps>(function AuthBlade(
     <div
       ref={ref}
       aria-hidden
-      className="absolute inset-y-0 left-0 w-[118%] z-20 pointer-events-none will-change-transform"
-      style={{
-        clipPath: "polygon(11% 0%, 100% 0%, 89% 100%, 0% 100%)",
-        filter: "drop-shadow(0 20px 40px rgba(139,94,82,0.35))",
-      }}
+      className={[
+        // Mobile: a full-width band pinned to the top. The extra 40px (SLANT) is
+        // so the diagonal bottom edge still clears the card's own bottom when the
+        // band dips to full cover.
+        "absolute inset-x-0 top-0 h-[calc(100%+40px)]",
+        // Desktop: a tall blade wider than the card, resting to one side.
+        "lg:inset-y-0 lg:left-0 lg:right-auto lg:h-auto lg:w-[118%]",
+        "auth-blade-clip z-20 pointer-events-none will-change-transform",
+      ].join(" ")}
+      style={{ filter: "drop-shadow(0 20px 40px rgba(139,94,82,0.35))" }}
     >
       {/* Rose-gold fill + travelling sheen. These span the whole oversized blade
           and move with it — that's what reads as the brand treatment sweeping
@@ -82,7 +87,8 @@ const AuthBlade = forwardRef<HTMLDivElement, AuthBladeProps>(function AuthBlade(
         {/* `isolation` matters: without it the mix-blend overlay below composites
             against the blade's opaque gradient as well as the photo, which washes
             the artwork out completely. Isolating keeps the blend on the image. */}
-        <div className="relative h-full w-[41%] overflow-hidden isolate">
+        {/* Mobile: the full-width band (BAND_H). Desktop: the vertical slice. */}
+        <div className="relative h-[240px] w-full overflow-hidden isolate lg:h-full lg:w-[41%]">
           <Image
             src="/images/model-2.jpeg"
             alt=""
@@ -90,7 +96,7 @@ const AuthBlade = forwardRef<HTMLDivElement, AuthBladeProps>(function AuthBlade(
             priority
             className="object-cover"
             style={{ objectPosition: "50% 28%" }}
-            sizes="(max-width: 1279px) 46vw, 576px"
+            sizes="(max-width: 1023px) 100vw, 576px"
           />
 
           {/* `overlay` tints the artwork's own highlights and shadows rather than
@@ -104,33 +110,37 @@ const AuthBlade = forwardRef<HTMLDivElement, AuthBladeProps>(function AuthBlade(
           {/* Bottom scrim, purely for copy legibility. */}
           <div className="absolute inset-0 bg-gradient-to-t from-rose-dark/80 via-rose-dark/10 to-transparent" />
 
-          <div className="relative h-full flex flex-col justify-end p-12 lg:p-16 text-off-white">
-          <span className="label-caps text-soft-tan mb-4">{copy.eyebrow}</span>
+          {/* Desktop only. The artwork already carries the Hey Beautiful mark and
+              wordmark, and on a short band this copy lands right on top of them —
+              and duplicates the form's own heading a few pixels below. So mobile
+              lets the photograph be the branding and the form supply the words. */}
+          <div className="relative h-full hidden lg:flex flex-col justify-end p-16 text-off-white">
+            <span className="label-caps text-soft-tan mb-4">{copy.eyebrow}</span>
 
-          <h2
-            className="text-off-white m-0"
-            style={{
-              fontFamily: "var(--font-cormorant)",
-              fontSize: "clamp(2.25rem, 3.4vw, 3.5rem)",
-              fontWeight: 300,
-              lineHeight: 0.98,
-            }}
-          >
-            {copy.heading}
-            <em className="block text-soft-tan italic">{copy.accent}</em>
-          </h2>
+            <h2
+              className="text-off-white m-0"
+              style={{
+                fontFamily: "var(--font-cormorant)",
+                fontSize: "clamp(2.25rem, 3.4vw, 3.5rem)",
+                fontWeight: 300,
+                lineHeight: 0.98,
+              }}
+            >
+              {copy.heading}
+              <em className="block text-soft-tan italic">{copy.accent}</em>
+            </h2>
 
-          <div className="mt-6 max-w-sm space-y-1.5">
-            {copy.lines.map((line) => (
-              <p
-                key={line}
-                className="text-off-white/75 leading-relaxed"
-                style={{ fontFamily: "var(--font-manrope)", fontSize: "0.9rem", fontWeight: 300 }}
-              >
-                {line}
-              </p>
-            ))}
-          </div>
+            <div className="mt-6 max-w-sm space-y-1.5">
+              {copy.lines.map((line) => (
+                <p
+                  key={line}
+                  className="text-off-white/75 leading-relaxed"
+                  style={{ fontFamily: "var(--font-manrope)", fontSize: "0.9rem", fontWeight: 300 }}
+                >
+                  {line}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
       </div>
