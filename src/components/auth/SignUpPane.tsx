@@ -6,20 +6,22 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
 import { fadeUp } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { withFrom } from "@/lib/redirect";
+import { MIN_PASSWORD_LENGTH } from "@/lib/constants";
+import {
+  PASSWORD_STRENGTH_COLOR,
+  PASSWORD_STRENGTH_LABEL,
+  PASSWORD_STRENGTH_SEGMENTS,
+  type PasswordStrength,
+} from "@/lib/password";
+import AccountExistsNotice from "./AccountExistsNotice";
 import AuthForm from "./AuthForm";
 import FloatingInput from "./FloatingInput";
 import SocialAuthButtons from "./SocialAuthButtons";
 import { useAuthTransition } from "./AuthTransitionContext";
 
-/**
- * Weak → strong stays a semantic progression (it's a usability signal, not
- * decoration — same reason inline field errors stay red), but each stop is
- * re-tinted from the brand palette so it doesn't read as an off-the-shelf meter.
- * "Strong" lands on an emerald tint, a nod to dark-emerald as the supporting
- * contrast colour.
- */
-export const STRENGTH_LABELS = ["Weak", "Fair", "Good", "Strong"];
-export const STRENGTH_COLORS = ["#d97b6c", "#dba15a", "#c9977a", "#5c7350"];
+/** Strength scale, labels and tints live in @/lib/password — see the note there on why
+ *  it's three states and not four. */
 
 interface SignUpPaneProps {
   name: string;
@@ -34,9 +36,16 @@ interface SignUpPaneProps {
   onTogglePassword: () => void;
   agreed: boolean;
   onAgreedChange: (value: boolean) => void;
-  strength: number;
+  strength: PasswordStrength;
   loading: boolean;
-  fieldErrors: { password?: string; confirm?: string; agree?: string };
+  fieldErrors: { email?: string; password?: string; confirm?: string; agree?: string };
+  /** Firebase refused because this address already has an account. */
+  emailAlreadyInUse?: boolean;
+  /**
+   * A social sign-in clashed with an existing account. The string is the conflicting
+   * address (empty when Firebase didn't supply one); `null` means no conflict.
+   */
+  credentialConflict?: string | null;
   onSubmit: (e: React.FormEvent) => void;
   onGoogle: () => Promise<void>;
   onApple: () => Promise<void>;
@@ -58,6 +67,8 @@ export default function SignUpPane({
   strength,
   loading,
   fieldErrors,
+  emailAlreadyInUse = false,
+  credentialConflict = null,
   onSubmit,
   onGoogle,
   onApple,
@@ -70,9 +81,16 @@ export default function SignUpPane({
   }, [notifyPaneReady]);
 
   // Carry the destination back if the user arrived here from /login?from=…
-  const signInHref = lastLoginFrom
-    ? `/login?from=${encodeURIComponent(lastLoginFrom)}`
-    : "/login";
+  // withFrom does the validating and encoding, so this stays inside the one boundary.
+  const signInHref = withFrom("/login", lastLoginFrom);
+  const resetHref = withFrom("/forgot-password", lastLoginFrom);
+
+  // Keep the blade sweep for in-app switches, but let modified clicks open a new tab.
+  const switchToSignIn = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    requestSwitch("signin", signInHref);
+  };
 
   return (
     <AuthForm title="Begin Your Journey" subtitle="Create your account">
@@ -86,15 +104,32 @@ export default function SignUpPane({
           required
         />
 
-        <FloatingInput
-          id="email"
-          label="Email Address"
-          type="email"
-          value={email}
-          onChange={(e) => onEmailChange(e.target.value)}
-          autoComplete="email"
-          required
-        />
+        <div>
+          <FloatingInput
+            id="email"
+            label="Email Address"
+            type="email"
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            autoComplete="email"
+            required
+            error={fieldErrors.email}
+          />
+
+          {/* Already registered isn't a failure — it means they're a customer already, so
+              point at the two things that actually help rather than a red toast. */}
+          {(emailAlreadyInUse || credentialConflict !== null) && (
+            <AccountExistsNotice
+              signInHref={signInHref}
+              resetHref={resetHref}
+              onSignIn={switchToSignIn}
+            >
+              {credentialConflict !== null
+                ? `${credentialConflict || "That email"} already has an account created with a different sign-in method. Please sign in the way you first signed up.`
+                : "You already have an account with this email."}
+            </AccountExistsNotice>
+          )}
+        </div>
 
         <div>
           <FloatingInput
@@ -119,30 +154,44 @@ export default function SignUpPane({
           />
 
           {password.length > 0 && (
-            <div className="flex items-center gap-2 mt-2 ml-1">
-              <div className="flex gap-1 flex-1">
-                {[0, 1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-1 flex-1 rounded-full transition-colors duration-300"
-                    style={{
-                      background:
-                        i < strength ? STRENGTH_COLORS[strength - 1] : "rgba(232,220,208,1)",
-                    }}
-                  />
-                ))}
+            <>
+              <div className="flex items-center gap-2 mt-2 ml-1">
+                <div className="flex gap-1 flex-1">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="h-1 flex-1 rounded-full transition-colors duration-300"
+                      style={{
+                        background:
+                          i < PASSWORD_STRENGTH_SEGMENTS[strength]
+                            ? PASSWORD_STRENGTH_COLOR[strength]
+                            : "rgba(232,220,208,1)",
+                      }}
+                    />
+                  ))}
+                </div>
+                <span
+                  className="text-[10px] font-medium"
+                  style={{
+                    fontFamily: "var(--font-manrope)",
+                    color: PASSWORD_STRENGTH_COLOR[strength],
+                    minWidth: "62px",
+                  }}
+                >
+                  {PASSWORD_STRENGTH_LABEL[strength]}
+                </span>
               </div>
-              <span
-                className="text-[10px] font-medium"
-                style={{
-                  fontFamily: "var(--font-manrope)",
-                  color: strength > 0 ? STRENGTH_COLORS[strength - 1] : "transparent",
-                  minWidth: "38px",
-                }}
-              >
-                {strength > 0 ? STRENGTH_LABELS[strength - 1] : ""}
-              </span>
-            </div>
+              {/* Say the rule out loud while it's unmet — the meter alone doesn't tell you
+                  what to do, and this is the only thing that actually blocks submission. */}
+              {strength === "too-short" && !fieldErrors.password && (
+                <p
+                  className="mt-1.5 ml-1 text-ink/45"
+                  style={{ fontFamily: "var(--font-manrope)", fontSize: "0.72rem" }}
+                >
+                  Use at least {MIN_PASSWORD_LENGTH} characters.
+                </p>
+              )}
+            </>
           )}
         </div>
 

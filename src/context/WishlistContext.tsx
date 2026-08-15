@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 
-const STORAGE_KEY = "hb-wishlist";
+import { WISHLIST_STORAGE_KEY as STORAGE_KEY } from "@/lib/constants";
 
 export interface WishlistProduct {
   /** Namespaced key, e.g. "product:1" — matches the cart's id scheme. */

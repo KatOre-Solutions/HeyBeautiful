@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -12,6 +12,16 @@ import {
 } from "lucide-react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
+import { sessionExpiredLoginUrl, withFrom } from "@/lib/redirect";
+import { clearSessionHint } from "@/lib/session";
+import { getAuthErrorMessage, isRateLimitError } from "@/lib/auth-errors";
+import { useCooldown } from "@/components/auth/useCooldown";
+import AuthErrorToast from "@/components/auth/AuthErrorToast";
+
+/** Matches the cooldown on /verify-email and /forgot-password. */
+const RESEND_COOLDOWN_SECONDS = 60;
 
 const cards = [
   {
@@ -38,19 +48,54 @@ const cards = [
 
 export default function AccountContent() {
   const router = useRouter();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, sendVerification } = useAuth();
+  const { clearCart } = useCart();
+  const { clearWishlist } = useWishlist();
+  const cooldown = useCooldown();
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [error, setError] = useState("");
 
-  // The proxy gates this route on a presence cookie only. If the Firebase session
-  // is actually gone (expired / stale cookie), bounce to login rather than render
-  // the dashboard to a logged-out visitor.
+  const handleResendVerification = async () => {
+    if (resending || cooldown.active) return;
+    setError("");
+    setResending(true);
+    try {
+      await sendVerification();
+      setResent(true);
+      cooldown.start(RESEND_COOLDOWN_SECONDS);
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+      // Already being throttled — back off rather than let them keep trying.
+      if (isRateLimitError(err)) cooldown.start(RESEND_COOLDOWN_SECONDS);
+    } finally {
+      setResending(false);
+    }
+  };
+  // One-shot guard: Strict Mode double-invokes effects and we never want two navigations
+  // racing (matches CheckoutContent).
+  const redirected = useRef(false);
+
+  // The proxy gates this route on the presence hint alone, which proves nothing. Now that
+  // Firebase has spoken, enforce the real answer: no user means the hint was stale, expired
+  // or hand-set, so clear it and bounce — carrying the destination so signing back in
+  // returns here. Clearing before navigating is what stops the proxy seeing the dead hint
+  // on /login and bouncing them straight back.
   useEffect(() => {
-    if (!loading && !user) router.replace("/login?from=/account");
+    if (loading || user || redirected.current) return;
+    redirected.current = true;
+    clearSessionHint();
+    router.replace(sessionExpiredLoginUrl("/account"));
   }, [loading, user, router]);
 
   const firstName = user?.displayName?.split(" ")[0] ?? "Beautiful";
 
   const handleSignOut = async () => {
     await signOut();
+    // signOut clears the persisted cart/wishlist; these reset the in-memory contexts, which
+    // live below AuthProvider and so are out of its reach.
+    clearCart();
+    clearWishlist();
     router.push("/");
   };
 
@@ -100,30 +145,66 @@ export default function AccountContent() {
             Welcome, {loading ? "…" : firstName}
           </motion.h1>
 
-          {/* Email verification reminder */}
+          {/* Advisory, never a gate: /account stays fully usable while unverified. The copy
+              says what verification is for, what it unlocks, and that they can carry on
+              without it — so the reminder informs rather than nags. */}
           {user && !user.emailVerified && (
             <motion.div
               variants={fadeUp}
-              className="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-full"
+              className="mt-6 mx-auto max-w-md text-left px-5 py-4 rounded-2xl"
               style={{
-                background: "rgba(201,151,122,0.1)",
+                background: "rgba(201,151,122,0.08)",
                 border: "1px solid rgba(201,151,122,0.25)",
               }}
             >
-              <Mail size={13} className="text-rose-gold" />
-              <span
-                className="text-ink/65"
+              <div className="flex items-center gap-2 mb-2">
+                <Mail size={14} className="text-rose-gold flex-shrink-0" />
+                <span
+                  className="text-ink font-medium"
+                  style={{ fontFamily: "var(--font-manrope)", fontSize: "0.82rem" }}
+                >
+                  Your email isn&apos;t verified yet
+                </span>
+              </div>
+              <p
+                className="text-ink/60 leading-relaxed mb-1"
+                style={{ fontFamily: "var(--font-manrope)", fontSize: "0.78rem" }}
+              >
+                Verifying <span className="text-ink/80">{user.email}</span> keeps your
+                account secure and is required before you can check out.
+              </p>
+              <p
+                className="text-ink/45 leading-relaxed mb-3"
                 style={{ fontFamily: "var(--font-manrope)", fontSize: "0.75rem" }}
               >
-                Please verify your email
-              </span>
-              <button
-                onClick={() => router.push("/verify-email")}
-                className="text-rose-gold font-medium hover:opacity-70"
-                style={{ fontFamily: "var(--font-manrope)", fontSize: "0.75rem" }}
-              >
-                Verify now →
-              </button>
+                Everything else here works as normal in the meantime.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resending || cooldown.active}
+                  className="text-rose-dark font-medium hover:opacity-70 transition-opacity disabled:opacity-50"
+                  style={{ fontFamily: "var(--font-manrope)", fontSize: "0.78rem" }}
+                >
+                  {resending
+                    ? "Sending…"
+                    : resent
+                      ? "Verification email sent ✓"
+                      : cooldown.active
+                        ? `Resend in ${cooldown.remaining}s`
+                        : "Resend verification email"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push(withFrom("/verify-email", "/account"))}
+                  className="text-ink/50 hover:text-dusty-pink transition-colors"
+                  style={{ fontFamily: "var(--font-manrope)", fontSize: "0.78rem" }}
+                >
+                  Already clicked the link?
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -190,6 +271,8 @@ export default function AccountContent() {
           </button>
         </motion.div>
       </div>
+
+      <AuthErrorToast message={error} onDismiss={() => setError("")} />
     </section>
   );
 }

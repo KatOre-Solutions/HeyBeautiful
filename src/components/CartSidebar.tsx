@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import SideDrawer from "@/components/SideDrawer";
 import { ease } from "@/lib/motion";
 import { formatPrice } from "@/lib/format";
+import { withFrom } from "@/lib/redirect";
 
 export default function CartSidebar() {
   const {
@@ -26,7 +27,7 @@ export default function CartSidebar() {
   const handleCheckout = () => {
     setCartOpen(false);
     if (!user) {
-      router.push("/login?from=checkout");
+      router.push(withFrom("/login", "/checkout"));
     } else {
       router.push("/checkout");
     }

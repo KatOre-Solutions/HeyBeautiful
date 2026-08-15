@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { AUTH_COOKIE } from "@/lib/constants";
+import { LEGACY_SESSION_HINT_COOKIE, SESSION_HINT_COOKIE } from "@/lib/constants";
+import { resolveDestination } from "@/lib/redirect";
 
 // Routes that require a session.
 const PROTECTED = ["/account", "/checkout"];
@@ -41,7 +42,15 @@ function buildCsp(nonce: string): string {
 }
 
 export function proxy(request: NextRequest) {
-  const hasAuth = Boolean(request.cookies.get(AUTH_COOKIE));
+  // A *hint*, never proof. It says "a session may exist", which is enough to decide which
+  // page to render without a Firebase round trip at the edge. Every protected page
+  // re-checks the real Firebase session on the client and bounces if the hint was lying.
+  // The legacy name is still read so browsers holding a pre-rename cookie don't get an
+  // extra redirect; it can be dropped once those have expired.
+  const hasSessionHint = Boolean(
+    request.cookies.get(SESSION_HINT_COOKIE) ??
+      request.cookies.get(LEGACY_SESSION_HINT_COOKIE)
+  );
   const { pathname } = request.nextUrl;
 
   const nonce = crypto.randomUUID();
@@ -65,15 +74,28 @@ export function proxy(request: NextRequest) {
   };
 
   // Gate protected routes behind a session.
-  if (isProtected && !hasAuth) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("from", pathname);
+  if (isProtected && !hasSessionHint) {
+    // A fresh URL rather than a clone of nextUrl: cloning drags the protected page's own
+    // query params onto the login screen. `from` carries path *and* search so
+    // /checkout?coupon=X round-trips; resolveDestination validates it (same guard the
+    // client uses) and searchParams does the encoding.
+    const url = new URL("/login", request.url);
+    url.searchParams.set(
+      "from",
+      resolveDestination(pathname + request.nextUrl.search)
+    );
     return withCsp(NextResponse.redirect(url));
   }
 
-  // Keep signed-in users out of the auth screens.
-  if (isAuthPage && hasAuth) {
+  // Keep signed-in users out of the auth screens — but never when the URL carries `from`.
+  //
+  // `from` means something deliberately routed the visitor here, which includes a client
+  // guard that just found the hint was lying. If we bounced those back, a hint the client
+  // cannot clear (one scoped to another path, or a browser refusing the write) would ping
+  // the user between /account and /login forever. Honouring `from` breaks that loop, and
+  // costs nothing for a genuinely signed-in visitor: LoginContent sees `user` immediately
+  // and forwards them to the destination they asked for.
+  if (isAuthPage && hasSessionHint && !request.nextUrl.searchParams.has("from")) {
     return withCsp(NextResponse.redirect(new URL("/account", request.url)));
   }
 
