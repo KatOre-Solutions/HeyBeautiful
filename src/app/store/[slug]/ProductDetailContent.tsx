@@ -52,6 +52,10 @@ export default function ProductDetailContent({
   const price = variant?.price ?? product.price;
   // Shopify's compareAtPrice is a product-level range, so it only lines up with
   // the variant the range was derived from — show it on the cheapest variant.
+  // Known limitation: if that cheapest variant is sold out, defaultVariant()
+  // picks a pricier in-stock one, so `price !== product.price` and the
+  // strikethrough silently drops for a genuinely discounted product. Acceptable
+  // until per-variant compareAt is wired up (follow-up: track in #4).
   const showCompareAt =
     product.originalPrice != null && price === product.price;
 
