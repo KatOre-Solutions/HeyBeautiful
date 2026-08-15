@@ -1,0 +1,20 @@
+name: Restrict PR source branch
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches:
+      - master
+
+jobs:
+  check-source-branch:
+    name: Only main may PR into master
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify head branch
+        run: |
+          if [ "${{ github.head_ref }}" != "main" ]; then
+            echo "PRs into master are only allowed from the 'main' branch. This PR is from '${{ github.head_ref }}'."
+            exit 1
+          fi
+          echo "OK: PR is from main."
