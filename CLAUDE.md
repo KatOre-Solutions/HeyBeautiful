@@ -4,15 +4,32 @@ Premium feminine-wellness ecommerce site. **Next.js 16** (App Router, Turbopack)
 + **Tailwind CSS** + **Framer Motion**. Auth is **Firebase** (Email/Password + Google + Apple)
 via `src/context/AuthContext.tsx`; cart and wishlist are React contexts
 (`src/context/CartContext.tsx`, `WishlistContext.tsx`). This is a **custom storefront for
-Shopify** — Shopify isn't wired up yet, so product/bundle data currently lives in
-`src/lib/products.ts` as placeholders (swap that one module for the Shopify Storefront API later).
+Shopify**: products come from the Storefront API via `src/lib/shopify.ts` (home featured grid,
+store grid, product detail). Bundles have no Shopify equivalent yet and remain placeholders in
+`src/lib/products.ts`.
 
-## Branch naming
+## Branching strategy
+
+```
+feature branch → PR → main   (integration + testing)
+                              ↓
+                   main → PR → master   (production-ready only)
+                                         ↓
+                                    Netlify auto-deploys
+```
+
+- **`master`** — production. Protected: no direct commits, PRs only, 1 approval required.
+  Netlify deploys exclusively from this branch.
+- **`main`** — integration. All feature/fix PRs merge here first. Test and verify on `main`
+  before promoting to `master`. Protected: PRs only, no direct commits.
+- **Feature branches** — branch off `main`, open PRs back to `main`.
+
+### Branch naming
 
 Feature branches use:
 
 ```
-oreutlwile/feat/<issue-number>/<kebab-issue-title>
+<username>/feat/<issue-number>/<kebab-issue-title>
 ```
 
 Example: issue #3 "Product Detail Pages" → `oreutlwile/feat/3/product-detail-pages`.
@@ -20,9 +37,10 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
 
 ## Conventions
 
-- **Cart/wishlist item ids are namespaced strings** — `product:<n>` (e.g. `product:1`) and
-  `bundle:<slug>` (e.g. `bundle:glow`). Never bare numbers. Variant-specific cart lines append
-  `#<variantId>` (e.g. `product:1#60ct`). See `src/lib/products.ts` and `CartContext`.
+- **Cart/wishlist item ids are namespaced strings** — `product:<n>` (the numeric half of the
+  Shopify product gid) and `bundle:<slug>` (e.g. `bundle:glow`). Never bare numbers. Cart lines
+  append the Shopify variant id (e.g. `product:1#4567`); build them with `toCartItem()` from
+  `src/lib/shopify.ts` rather than by hand. See `CartContext`.
 - **Design tokens** (`tailwind.config.ts`): `rose-gold` (#c9977a, primary accent), `ink`
   (#1e1814, primary text), `cream` (#faf7f4), `parchment` (#f0ebe3). Prefer these over hex
   literals in JSX.
@@ -68,7 +86,8 @@ post findings as inline GitHub PR comments instead:
 
 ## Commit / PR
 
-- Branch off the relevant base; never commit straight to `master`.
+- Branch off `main`; never commit straight to `main` or `master`.
+- PRs target `main`. Only `main → master` PRs go to production.
 - Commit messages reference the issue (`#3`); use `Closes #n` in the PR body to auto-close.
 
 ## Build note — Windows path casing
