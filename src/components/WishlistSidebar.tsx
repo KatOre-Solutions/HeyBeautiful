@@ -15,10 +15,21 @@ export default function WishlistSidebar() {
     useWishlist();
   const { addItem, setCartOpen } = useCart();
 
+  // The wishlist keys entries by PRODUCT while the cart keys lines by VARIANT,
+  // so a saved item can't be handed to the cart as-is — that produced a bare
+  // `product:1` row alongside the `product:1#4567` the card's quick-add builds,
+  // i.e. the same product twice with independent quantities (#63). `cartLine`
+  // was captured by toCartItem() at wish time; fall back to the product fields
+  // for entries saved before it existed, and for bundles, which have no variants.
+  const toBagLine = (item: WishlistProduct) => {
+    const { cartLine, ...product } = item;
+    return cartLine ?? product;
+  };
+
   // Move every saved item into the bag (and out of the wishlist), then hand
   // off to the cart.
   const handleShopAll = () => {
-    items.forEach((item) => addItem(item));
+    items.forEach((item) => addItem(toBagLine(item)));
     clearWishlist();
     setWishlistOpen(false);
     setCartOpen(true);
@@ -28,7 +39,7 @@ export default function WishlistSidebar() {
   // No auto-open of the cart — the "Added to bag" toast confirms it (matches
   // the product-card add behaviour).
   const handleMoveToBag = (item: WishlistProduct) => {
-    addItem(item);
+    addItem(toBagLine(item));
     toggleItem(item);
   };
 

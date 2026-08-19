@@ -9,14 +9,34 @@ import {
 } from "react";
 
 import { WISHLIST_STORAGE_KEY as STORAGE_KEY } from "@/lib/constants";
+import type { CartLine } from "@/lib/product";
 
 export interface WishlistProduct {
-  /** Namespaced key, e.g. "product:1" — matches the cart's id scheme. */
+  /**
+   * Namespaced PRODUCT key, e.g. "product:1" — never variant-keyed. A wishlist
+   * entry is a product, not a variant: `isWishlisted(product.id)` is what fills
+   * the heart on both the card and the detail page, so this has to stay the id
+   * those callers already hold.
+   */
   id: string;
   name: string;
   category: string;
   price: number;
   image: string;
+  /**
+   * The bag line this entry becomes when moved to the cart, captured at wish
+   * time via `toCartItem()` (#63).
+   *
+   * The cart keys lines by variant (`product:1#4567`) while the wishlist keys by
+   * product, so the two cannot share one id. Without this the wishlist handed
+   * the cart a bare `product:1` and a product added from both surfaces opened
+   * two rows with independent quantities.
+   *
+   * Optional because entries persisted before this existed — and bundles, which
+   * have no variants — legitimately have none; those fall back to the product
+   * fields, which is the old behaviour and correct for them.
+   */
+  cartLine?: CartLine;
 }
 
 interface WishlistContextType {
