@@ -3,35 +3,6 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, X } from "lucide-react";
-import { FirebaseError } from "firebase/app";
-
-const errorMessages: Record<string, string> = {
-  "auth/email-already-in-use": "An account with this email already exists.",
-  "auth/invalid-email": "Please enter a valid email address.",
-  "auth/wrong-password": "Incorrect password. Please try again.",
-  "auth/invalid-credential": "Incorrect email or password. Please try again.",
-  "auth/user-not-found": "No account found with this email.",
-  "auth/weak-password": "Password should be at least 6 characters.",
-  "auth/too-many-requests": "Too many attempts. Please wait a moment and try again.",
-  "auth/network-request-failed": "Connection error. Please check your internet.",
-  "auth/popup-closed-by-user": "", // user cancelled — stay silent
-  "auth/cancelled-popup-request": "",
-  "auth/account-exists-with-different-credential":
-    "This email is already linked to a different sign-in method.",
-};
-
-/**
- * Translate any thrown auth error into a friendly message.
- * Returns "" for errors that should be silently ignored (e.g. cancelled popups).
- */
-export function getAuthErrorMessage(err: unknown): string {
-  if (err instanceof FirebaseError) {
-    if (err.code in errorMessages) return errorMessages[err.code];
-    return "Something went wrong. Please try again.";
-  }
-  if (err instanceof Error && err.message) return err.message;
-  return "Something went wrong. Please try again.";
-}
 
 interface AuthErrorToastProps {
   message: string;

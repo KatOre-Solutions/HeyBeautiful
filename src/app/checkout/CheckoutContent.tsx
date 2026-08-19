@@ -10,6 +10,8 @@ import { fadeUp, staggerContainer } from "@/lib/motion";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
+import { sessionExpiredLoginUrl, withFrom } from "@/lib/redirect";
+import { clearSessionHint } from "@/lib/session";
 
 export default function CheckoutContent() {
   const router = useRouter();
@@ -25,13 +27,18 @@ export default function CheckoutContent() {
   // so the user lands back here once verified. See #22.
   useEffect(() => {
     if (loading || redirected.current) return;
+    // The full current URL, so a coupon or similar survives the round trip. withFrom
+    // validates and encodes it.
+    const dest = window.location.pathname + window.location.search;
     if (!user) {
       redirected.current = true;
-      router.replace("/login?from=checkout");
+      // The hint let us in but Firebase says otherwise — it was stale, expired or hand-set.
+      // Clear it before navigating so the proxy doesn't bounce us back off /login.
+      clearSessionHint();
+      router.replace(sessionExpiredLoginUrl(dest));
     } else if (!user.emailVerified) {
       redirected.current = true;
-      const dest = window.location.pathname + window.location.search;
-      router.replace(`/verify-email?from=${encodeURIComponent(dest)}`);
+      router.replace(withFrom("/verify-email", dest));
     }
   }, [loading, user, router]);
 

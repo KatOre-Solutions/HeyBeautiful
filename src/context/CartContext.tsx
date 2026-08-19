@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
-const STORAGE_KEY = "hb-cart";
+import { CART_STORAGE_KEY as STORAGE_KEY } from "@/lib/constants";
 
 export interface CartProduct {
   /** Namespaced key, e.g. "product:1" or "bundle:glow" — never a bare number. */

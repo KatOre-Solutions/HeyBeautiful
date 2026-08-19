@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
 import { fadeUp } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { withFrom } from "@/lib/redirect";
+import AccountExistsNotice from "./AccountExistsNotice";
 import AuthForm from "./AuthForm";
 import FloatingInput from "./FloatingInput";
 import SocialAuthButtons from "./SocialAuthButtons";
@@ -21,6 +23,13 @@ interface SignInPaneProps {
   remember: boolean;
   onRememberChange: (value: boolean) => void;
   loading: boolean;
+  /**
+   * A social sign-in clashed with an existing account. The string is the conflicting
+   * address (empty when Firebase didn't supply one); `null` means no conflict.
+   */
+  credentialConflict?: string | null;
+  /** Arrived here because a protected page found the session gone. */
+  sessionExpired?: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onGoogle: () => Promise<void>;
   onApple: () => Promise<void>;
@@ -36,11 +45,21 @@ export default function SignInPane({
   remember,
   onRememberChange,
   loading,
+  credentialConflict = null,
+  sessionExpired = false,
   onSubmit,
   onGoogle,
   onApple,
 }: SignInPaneProps) {
-  const { requestSwitch, isTransitioning, notifyPaneReady } = useAuthTransition();
+  const { requestSwitch, isTransitioning, notifyPaneReady, lastLoginFrom } =
+    useAuthTransition();
+
+  // Carry the post-auth destination onto the sibling auth routes. withFrom validates, so a
+  // poisoned value can never be serialised into these hrefs. /forgot-password especially
+  // needs it on the URL: it renders outside the (card) group, so AuthCard unmounts and the
+  // context value is gone by the time the user comes back.
+  const signUpHref = withFrom("/signup", lastLoginFrom);
+  const forgotHref = withFrom("/forgot-password", lastLoginFrom);
 
   // Tell the blade this pane is up. The effect runs post-commit, so the pane is
   // already mounted here; the rAF then guarantees it has *painted* before the
@@ -53,7 +72,38 @@ export default function SignInPane({
 
   return (
     <AuthForm title="Welcome Back" subtitle="Sign in to your account">
+      {/* Not an error — a plain explanation, above the form, in the calm brand tint rather
+          than the red used for things the user got wrong. */}
+      {sessionExpired && (
+        <div
+          role="status"
+          className="mb-5 px-3 py-2.5 rounded-xl"
+          style={{
+            background: "rgba(201,151,122,0.08)",
+            border: "1px solid rgba(201,151,122,0.25)",
+          }}
+        >
+          <p
+            className="text-ink/70 leading-relaxed"
+            style={{ fontFamily: "var(--font-manrope)", fontSize: "0.78rem" }}
+          >
+            Your session has ended. Please sign in again — we&apos;ll take you straight back
+            to where you were.
+          </p>
+        </div>
+      )}
+
       <SocialAuthButtons onGoogle={onGoogle} onApple={onApple} dividerLabel="or sign in with email" />
+
+      {/* Google/Apple refused because the address belongs to an account made another way.
+          Sits directly under the social buttons — that's what the user just pressed. */}
+      {credentialConflict !== null && (
+        <AccountExistsNotice resetHref={forgotHref}>
+          {credentialConflict || "That email"} already has an account created with a
+          different sign-in method. Try signing in with your email and password below, or
+          reset your password if you don&apos;t remember it.
+        </AccountExistsNotice>
+      )}
 
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <FloatingInput
@@ -102,7 +152,7 @@ export default function SignInPane({
             </span>
           </label>
           <Link
-            href="/forgot-password"
+            href={forgotHref}
             className="text-rose-dark hover:opacity-70 transition-opacity"
             style={{ fontFamily: "var(--font-manrope)", fontSize: "0.78rem" }}
           >
@@ -132,11 +182,11 @@ export default function SignInPane({
             route is reachable without JS; the click handler takes over to play
             the blade sweep instead of a plain navigation. */}
         <Link
-          href="/signup"
+          href={signUpHref}
           onClick={(e) => {
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
             e.preventDefault();
-            requestSwitch("signup", "/signup");
+            requestSwitch("signup", signUpHref);
           }}
           aria-disabled={isTransitioning || undefined}
           className={cn(
