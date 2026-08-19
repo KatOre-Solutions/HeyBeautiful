@@ -16,10 +16,20 @@ on:
   pull_request:
     branches: [main, master]
 
-# A new push to the same branch makes the in-flight run obsolete.
+# A new push to the same branch makes the in-flight run obsolete — but only for
+# PR churn. On main/master every commit must keep its own verdict: two merges
+# landing minutes apart would otherwise cancel the first, leaving the branch
+# Netlify deploys from carrying a commit that was never verified.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Read-only token. Nothing here writes to the repository, and `npm ci` runs
+# third-party install scripts (sharp has one) with this token in the
+# environment — no reason to hand them the default, which is contents: write
+# on older repos.
+permissions:
+  contents: read
 
 jobs:
   quality:
@@ -57,9 +67,19 @@ jobs:
           # Plain glob patterns only — hashFiles() uses @actions/glob, which has no
           # brace expansion, so 'src/**/*.{ts,tsx}' would match nothing and quietly
           # weaken the key. 'src/**' is broad on purpose.
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('src/**', 'public/**', 'next.config.ts', 'tailwind.config.ts', 'postcss.config.mjs', 'tsconfig.json') }}
+          #
+          # The lockfile is matched literally, not as '**/package-lock.json': this
+          # step runs after `npm ci`, so a '**' glob walks the populated
+          # node_modules. No installed package ships a nested lockfile today, but
+          # the first one that does would move the key for unrelated reasons.
+          #
+          # The source hash is deliberate. Without it the key never changes, and
+          # actions/cache does not overwrite an existing key — so .next/cache would
+          # freeze at its first-ever contents and go stale forever. Churn is not a
+          # concern here: this cache measures ~38 KB.
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'public/**', 'next.config.ts', 'tailwind.config.ts', 'postcss.config.mjs', 'tsconfig.json') }}
           restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
 
       - name: Lint
         run: npm run lint

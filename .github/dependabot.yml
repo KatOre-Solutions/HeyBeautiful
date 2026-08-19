@@ -1,8 +1,21 @@
 # Weekly dependency updates (#59). Both ecosystems in use are covered: the npm
 # tree, and the actions pinned in .github/workflows.
 #
-# Updates open PRs against main, never master — master only ever receives a
-# promotion PR from main, per the branching strategy in CLAUDE.md.
+# `target-branch: main` is required, not cosmetic: master only ever receives a
+# promotion PR from main, and the restrict-pr-source check enforces that. Without
+# it Dependabot would raise PRs against the default branch (master), where that
+# required check fails by design — every one would be unmergeable.
+#
+# ⚠️ KNOWN COST: setting target-branch makes a config VERSION-UPDATES ONLY.
+# Dependabot *security* updates always target the repository's default branch and
+# cannot be retargeted, so while the default branch is `master` this repo gets no
+# automatic security PRs — a critical CVE would only be picked up whenever the
+# weekly version run happens to bump past it.
+#
+# The fix is to make `main` the repository default branch (it is the integration
+# branch; master is a deploy target). Then target-branch can be deleted from both
+# entries below and security updates start working. That is a repo setting, not
+# something this file can do.
 version: 2
 
 updates:
