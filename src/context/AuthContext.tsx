@@ -214,6 +214,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const socialSignIn = useCallback(async (provider: FirebaseAuthProvider) => {
+    // State the intent instead of inheriting it. There's no "remember me" on the social
+    // buttons, so these logins are persistent — but without saying so we'd keep whatever
+    // persistence a previous signIn left on the Auth instance, while signOut has already
+    // cleared the session-only marker. That pairs a session-scoped Firebase login with a
+    // 30-day hint cookie, and the next browser launch bounces off /account as "expired".
+    markSessionOnly(false);
+    await setPersistence(auth, browserLocalPersistence);
     try {
       const result = await signInWithPopup(auth, provider);
       setSessionHint();

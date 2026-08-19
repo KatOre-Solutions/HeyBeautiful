@@ -111,6 +111,11 @@ function LoginForm() {
     e.preventDefault();
     if (loading) return;
     setError("");
+    // A conflict raised by a social attempt is about a different sign-in method — leaving
+    // it up would pin that panel over an unrelated email/password failure. Both sources
+    // have to go, since credentialConflict falls back to the redirect-path one.
+    setPopupConflict(null);
+    if (redirectError) clearRedirectError();
     setLoading(true);
     try {
       await signIn(email, password, remember);

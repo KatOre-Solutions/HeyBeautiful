@@ -178,6 +178,8 @@ function SignupForm() {
     saveDestination(destination);
     setError("");
     setPopupConflict(null);
+    // The email path's notice doesn't apply to the provider they just picked.
+    setEmailAlreadyInUse(false);
     // A stale failure from a previous redirect shouldn't linger over a fresh attempt.
     if (redirectError) clearRedirectError();
     try {
@@ -205,9 +207,22 @@ function SignupForm() {
         emailAlreadyInUse={emailAlreadyInUse}
         credentialConflict={credentialConflict}
         password={password}
-        onPasswordChange={setPassword}
+        onPasswordChange={(value) => {
+          setPassword(value);
+          // Clear both: the strength hint in SignUpPane is gated on !fieldErrors.password,
+          // so leaving it set hides the "use at least 8 characters" guidance for good, and
+          // a length fix usually resolves the mismatch error too.
+          if (fieldErrors.password)
+            setFieldErrors((f) => ({ ...f, password: undefined }));
+          if (fieldErrors.confirm)
+            setFieldErrors((f) => ({ ...f, confirm: undefined }));
+        }}
         confirm={confirm}
-        onConfirmChange={setConfirm}
+        onConfirmChange={(value) => {
+          setConfirm(value);
+          if (fieldErrors.confirm)
+            setFieldErrors((f) => ({ ...f, confirm: undefined }));
+        }}
         showPassword={showPassword}
         onTogglePassword={() => setShowPassword((v) => !v)}
         agreed={agreed}

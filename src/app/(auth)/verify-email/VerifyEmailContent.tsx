@@ -8,7 +8,12 @@ import { fadeUp } from "@/lib/motion";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { requiresVerification, resolveDestination, withFrom } from "@/lib/redirect";
+import {
+  DEFAULT_DESTINATION,
+  requiresVerification,
+  resolveDestination,
+  withFrom,
+} from "@/lib/redirect";
 import AuthForm from "@/components/auth/AuthForm";
 import AuthErrorToast from "@/components/auth/AuthErrorToast";
 import { getAuthErrorMessage, isRateLimitError } from "@/lib/auth-errors";
@@ -42,6 +47,11 @@ function VerifyEmail() {
   // this page while unverified — and the verified case is already handled by the
   // auto-redirect below. So the manual CTA only makes sense for advisory destinations.
   const showManualContinue = !requiresVerification(dest);
+  // `dest` is whatever survived resolveDestination — /verify-email?from=%2Fstore is
+  // reachable from sign-up — so the label has to follow it rather than always claiming
+  // the account page while navigating somewhere else.
+  const continueLabel =
+    dest === DEFAULT_DESTINATION ? "Continue to My Account" : "Continue";
   // Sign-up sets `sent=0` when the account was created but the verification email couldn't
   // be sent. The account is real and the session is live — only the email is missing — so
   // say so plainly instead of claiming we sent something we didn't.
@@ -332,7 +342,7 @@ function VerifyEmail() {
               whileTap={{ scale: 0.98 }}
               className="btn-primary-gradient w-full py-4"
             >
-              Continue to My Account
+              {continueLabel}
             </motion.button>
           )}
 

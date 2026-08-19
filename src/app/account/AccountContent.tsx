@@ -23,6 +23,9 @@ import AuthErrorToast from "@/components/auth/AuthErrorToast";
 /** Matches the cooldown on /verify-email and /forgot-password. */
 const RESEND_COOLDOWN_SECONDS = 60;
 
+/** How long the "sent ✓" confirmation shows before the button returns to its normal label. */
+const RESENT_NOTICE_MS = 4000;
+
 const cards = [
   {
     Icon: ShoppingBag,
@@ -72,6 +75,15 @@ export default function AccountContent() {
       setResending(false);
     }
   };
+  // Let the confirmation lapse, otherwise `resent` outranks the cooldown in the button
+  // label forever and a second resend gives no feedback at all. Same shape as
+  // VerifyEmailContent, so an unmount mid-notice leaves no timer behind.
+  useEffect(() => {
+    if (!resent) return;
+    const id = setTimeout(() => setResent(false), RESENT_NOTICE_MS);
+    return () => clearTimeout(id);
+  }, [resent]);
+
   // One-shot guard: Strict Mode double-invokes effects and we never want two navigations
   // racing (matches CheckoutContent).
   const redirected = useRef(false);
@@ -91,6 +103,11 @@ export default function AccountContent() {
   const firstName = user?.displayName?.split(" ")[0] ?? "Beautiful";
 
   const handleSignOut = async () => {
+    // Claim the one-shot guard *before* signing out. signOut drives onAuthStateChanged →
+    // user === null, which is exactly what the expiry effect above watches for — without
+    // this it fires on the same render and its router.replace beats the push below, so
+    // deliberately signing out lands on "Your session has ended. Please sign in again".
+    redirected.current = true;
     await signOut();
     // signOut clears the persisted cart/wishlist; these reset the in-memory contexts, which
     // live below AuthProvider and so are out of its reach.
