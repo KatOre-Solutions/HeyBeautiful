@@ -7,10 +7,14 @@
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0 && node scripts/check-images.mjs",
+    "typecheck": "tsc --noEmit",
     "images:check": "node scripts/check-images.mjs",
     "images:normalize": "node scripts/normalize-images.mjs",
     "video:normalize": "node scripts/normalize-video.mjs",
     "video:check": "node scripts/check-video.mjs"
+  },
+  "engines": {
+    "node": "22.x"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
