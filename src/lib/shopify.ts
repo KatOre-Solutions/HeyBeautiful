@@ -99,7 +99,7 @@ interface ShopifyProductNode {
  * changing it on Netlify requires a new build, and in production mode the
  * `import()` below is dead code the bundler drops entirely.
  */
-function usePlaceholderCatalogue(): boolean {
+function placeholderCatalogueEnabled(): boolean {
   return process.env.NEXT_PUBLIC_USE_PLACEHOLDER_PRODUCTS === "true";
 }
 
@@ -235,7 +235,7 @@ export async function getProducts(): Promise<ShopifyProduct[]> {
   // mode — and, since the flag is inlined at build time, is dropped from the
   // production bundle altogether. It also breaks the import cycle: that module
   // imports FEATURED_TAG from this one.
-  if (usePlaceholderCatalogue()) {
+  if (placeholderCatalogueEnabled()) {
     return (await import("./placeholder-products")).placeholderCatalogue;
   }
 
@@ -270,7 +270,7 @@ export async function getProductBySlug(
 ): Promise<ShopifyProduct | null> {
   // Must honour the switch too, or every development-catalogue card 404s the
   // moment someone clicks it.
-  if (usePlaceholderCatalogue()) {
+  if (placeholderCatalogueEnabled()) {
     const { placeholderCatalogue } = await import("./placeholder-products");
     return placeholderCatalogue.find((p) => p.slug === slug) ?? null;
   }

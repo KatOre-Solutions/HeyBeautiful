@@ -1,0 +1,32 @@
+# Weekly dependency updates (#59). Both ecosystems in use are covered: the npm
+# tree, and the actions pinned in .github/workflows.
+#
+# Updates open PRs against main, never master — master only ever receives a
+# promotion PR from main, per the branching strategy in CLAUDE.md.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: main
+    open-pull-requests-limit: 5
+    groups:
+      # Next, React and their type packages move together; separate PRs for each
+      # would land a half-upgraded tree that fails to build.
+      next-react:
+        patterns:
+          - next
+          - react
+          - react-dom
+          - eslint-config-next
+          - "@types/react"
+          - "@types/react-dom"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: main
+    open-pull-requests-limit: 5

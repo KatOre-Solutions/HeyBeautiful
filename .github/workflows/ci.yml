@@ -1,0 +1,81 @@
+# Quality gate for the long-lived branches (#59).
+#
+# The promotion flow is  feature/* --PR--> main --PR--> master (production;
+# Netlify deploys from master), so both long-lived branches are gated here: on
+# the PR that proposes the merge, and again on the push that lands it.
+#
+# One sequential job on purpose. The steps are ordered cheapest-first and rely on
+# the default stop-on-first-failure, so a lint slip fails in ~30s instead of
+# waiting out a full production build. Splitting into parallel jobs would cost a
+# fresh checkout + `npm ci` per job and save nothing at this size.
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# A new push to the same branch makes the in-flight run obsolete.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    # Keep this name stable — it is the required status check configured on
+    # main and master in branch protection. Renaming it silently detaches the
+    # protection rule, which then passes everything.
+    name: Lint · Typecheck · Test · Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Single-sourced from .nvmrc so CI, local dev and Netlify cannot drift.
+          node-version-file: .nvmrc
+          cache: npm
+
+      # `ci`, not `install`: the lockfile is committed and must be obeyed
+      # exactly. `npm install` would silently resolve newer versions, so a
+      # dependency could break production without a single tracked file changing.
+      - name: Install dependencies
+        run: npm ci
+
+      # Next's own build cache. Keyed on the lockfile *and* the sources that
+      # actually affect output, so a real code change can't be served a stale
+      # cache; the restore-keys line still gives a warm start from the previous
+      # build whenever only sources moved.
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          # Plain glob patterns only — hashFiles() uses @actions/glob, which has no
+          # brace expansion, so 'src/**/*.{ts,tsx}' would match nothing and quietly
+          # weaken the key. 'src/**' is broad on purpose.
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('src/**', 'public/**', 'next.config.ts', 'tailwind.config.ts', 'postcss.config.mjs', 'tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # No test runner in the dependency tree yet, so this is a deliberate no-op.
+      # `--if-present` means CI starts running tests the moment a `test` script
+      # is added, with no workflow change needed.
+      - name: Test
+        run: npm test --if-present
+
+      # Runs with no secrets. The storefront is designed for this: with no
+      # Shopify credentials `isConfigured()` is false, the catalogue falls back
+      # to the non-purchasable "Coming Soon" tiles, and since those carry no
+      # slug, `generateStaticParams` prerenders no product detail pages.
+      - name: Build
+        run: npm run build

@@ -3,7 +3,7 @@
 // Used ONLY when NEXT_PUBLIC_USE_PLACEHOLDER_PRODUCTS === "true", via the single
 // guarded branch in `src/lib/shopify.ts`. Nothing else may import this module —
 // keeping it to one import site is what stops development data reaching
-// production. See `usePlaceholderCatalogue()` there.
+// production. See `placeholderCatalogueEnabled()` there.
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // DO NOT SET `placeholder: true` ON ANYTHING IN THIS FILE.

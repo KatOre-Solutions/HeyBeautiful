@@ -117,11 +117,12 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
 - **Cart/wishlist item ids are namespaced strings** — `product:<n>` (the numeric half of the
   Shopify product gid) and `bundle:<slug>` (e.g. `bundle:glow`). Never bare numbers. Cart lines
   append the Shopify variant id (e.g. `product:1#4567`); build them with `toCartItem()` from
-  `src/lib/shopify.ts` rather than by hand. See `CartContext`.
-- **Catalog data** (#4): products come from `src/lib/shopify.ts` — `getProducts`,
-  `getFeaturedProducts`, `getProductBySlug`, plus the `defaultVariant` / `isSoldOut` /
-  `toCartItem` helpers. Fetches are tagged `"products"` with an hourly `revalidate` as a
-  safety net; Shopify's product webhooks bust the tag on demand via `POST /api/revalidate`.
+  `src/lib/product.ts` rather than by hand. See `CartContext`.
+- **Catalog data** (#4): products are fetched in `src/lib/shopify.ts` — `getProducts`,
+  `getFeaturedProducts`, `getProductBySlug`; the `defaultVariant` / `isSoldOut` /
+  `toCartItem` helpers live alongside the types in `src/lib/product.ts`. Fetches are tagged
+  `"products"` with an hourly `revalidate` as a safety net; Shopify's product webhooks bust
+  the tag on demand via `POST /api/revalidate`.
   With no credentials the store degrades to non-purchasable "Coming Soon" placeholders;
   a *configured* store that errors renders an empty grid rather than fake products.
   Bundles are still hardcoded in `src/lib/products.ts` — no Shopify equivalent yet.
