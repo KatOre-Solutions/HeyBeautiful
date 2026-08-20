@@ -1,0 +1,80 @@
+# Enforces the promotion flow from CLAUDE.md: production (`master`) may only ever
+# be reached from `main`. This job is a REQUIRED STATUS CHECK on master, so it is
+# the thing standing between an arbitrary branch and production.
+#
+# ⚠️ KNOWN LIMITATION — this guard can be NEUTERED by the PR it is guarding.
+#
+# `on: pull_request` resolves workflow files from the PR's MERGE COMMIT, not from
+# the base branch. Proven in this repo: ci.yml did not exist on main at e39c1cc,
+# yet it ran twice as `pull_request` on PR #77 — the PR that introduced it.
+#
+# So a PR into master can edit THIS FILE in the same branch — `exit 0`, or a
+# job-level `if: false`, which reports as "skipped" and satisfies a required
+# check — and the check named below goes green while the PR is not from main.
+# The repo is public, so anyone can fork and try it. Merging still needs a human
+# approving review, but the signal an approver relies on would be lying.
+#
+# The fix is `pull_request_target`, which resolves from the base branch and is
+# safe here precisely because this job checks nothing out and holds no token.
+# It CANNOT be applied in one step: pull_request_target eligibility is read from
+# the base, and pull_request eligibility from the merge commit, so flipping the
+# trigger means NEITHER fires on the promotion PR — the required check never
+# reports and production promotion is blocked permanently. Migrating needs two
+# promotion cycles (add pull_request_target alongside, land it on master, then
+# drop pull_request). Tracked separately rather than risking the deploy path
+# inside a hardening PR.
+name: Restrict PR source branch
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches:
+      - master
+
+# The job only compares two strings — it needs no repository access at all.
+permissions: {}
+
+jobs:
+  check-source-branch:
+    # Do NOT rename: this exact string is the required status check configured on
+    # master. Renaming it detaches the protection rule, which then passes silently.
+    name: Only main may PR into master
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify head branch
+        # Every untrusted value is passed as an environment variable and quoted on
+        # use. `${{ }}` is substituted as TEXT before the shell parses the line, so
+        # interpolating a branch name straight into `run:` is the
+        # actions/command-injection pattern — branch names may contain ", ;, $,
+        # backtick and |, and the shell sees them as script.
+        #
+        # Being precise about what that did and did not allow here, because the
+        # first report of #78 overstated it: it was NOT a working bypass. Bash
+        # parses the whole if/fi compound before running any of it, so a malformed
+        # branch name is a syntax error — the step exits non-zero and the check
+        # fails CLOSED. Measured against the old script, `x"; exit 0; #` and two
+        # no-space variants all exit 2, while `main` exits 0 and `feature-branch`
+        # exits 1. Git ref rules (no space, no `[`, no `:`) rule out the usual
+        # tricks for reopening a test.
+        #
+        # So this half is defence in depth against a pattern that is not reliably
+        # fail-closed, not the repair of a live hole. The same-repo assertion
+        # below is the half that closed a real one. (#78)
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          # head_ref is only a branch NAME, so on its own it cannot tell this repo's
+          # `main` from a fork's `main`. Check the repository first.
+          if [ "$HEAD_REPO" != "$THIS_REPO" ]; then
+            echo "PRs into master must come from $THIS_REPO — this one is from the fork '$HEAD_REPO'."
+            exit 1
+          fi
+
+          if [ "$HEAD_REF" != "main" ]; then
+            echo "PRs into master are only allowed from the 'main' branch. This PR is from '$HEAD_REF'."
+            exit 1
+          fi
+
+          echo "OK: PR is from main."
