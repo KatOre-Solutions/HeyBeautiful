@@ -73,6 +73,10 @@ export default function ProductDetailContent({
       category: product.category,
       price: product.price,
       image: product.image,
+      // The variant the shopper is actually looking at — same line the Add to
+      // Bag button above would build, so moving it over from the wishlist adds
+      // to that row rather than opening a second one (#63).
+      cartLine: toCartItem(product, variant),
     });
   };
 

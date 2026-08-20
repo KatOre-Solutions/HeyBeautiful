@@ -116,11 +116,31 @@ export function isSoldOut(product: ShopifyProduct): boolean {
 }
 
 /**
+ * A bag line before the cart adds a quantity. Named so other surfaces can carry
+ * one around verbatim rather than rebuilding the id by hand — the wishlist does
+ * exactly that, which is what stops it opening a second row for a product the
+ * card already added (#63).
+ */
+export interface CartLine {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  image: string;
+}
+
+/**
  * Builds a cart line for a product/variant pair. Variant-specific lines append
  * `#<variantId>` to the product key so two sizes of the same product are
  * distinct rows in the bag (see CartContext).
+ *
+ * This is the ONLY place a cart id is constructed. Anything that needs one must
+ * come through here or carry a `CartLine` built here.
  */
-export function toCartItem(product: ShopifyProduct, variant?: ShopifyVariant) {
+export function toCartItem(
+  product: ShopifyProduct,
+  variant?: ShopifyVariant
+): CartLine {
   const v = variant ?? defaultVariant(product);
   const hasChoice = (product.variants?.length ?? 0) > 1;
 

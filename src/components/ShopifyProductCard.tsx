@@ -31,6 +31,9 @@ function WishlistHeart({ product }: { product: ShopifyProduct }) {
       category: product.category,
       price: product.price,
       image: product.image,
+      // Same line this card's quick-add would build, so moving it to the bag
+      // later lands on that row instead of opening a second one (#63).
+      cartLine: toCartItem(product),
     });
   };
 
