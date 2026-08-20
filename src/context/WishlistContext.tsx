@@ -32,9 +32,13 @@ export interface WishlistProduct {
    * the cart a bare `product:1` and a product added from both surfaces opened
    * two rows with independent quantities.
    *
-   * Optional because entries persisted before this existed — and bundles, which
-   * have no variants — legitimately have none; those fall back to the product
-   * fields, which is the old behaviour and correct for them.
+   * Optional only for the persisted shape: entries written before this existed
+   * have none, and are dropped on restore below rather than falling back —
+   * falling back would reproduce exactly the duplicate row this prevents.
+   *
+   * Every live write sets it. (An earlier revision justified the optionality
+   * with "bundles have no variants"; that is wrong — BundleCard has no wishlist
+   * control, so bundles never enter the wishlist at all.)
    */
   cartLine?: CartLine;
 }
@@ -62,9 +66,23 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        // Keep only string-id entries (guards against legacy/corrupt data).
+        // Keep only string-id entries (guards against legacy/corrupt data), and
+        // drop anything saved before `cartLine` existed (#63).
+        //
+        // Wishlists persist indefinitely, so without this the fix would never
+        // reach anyone who had already saved something: a pre-existing entry has
+        // no cartLine, falls back to its bare `product:1`, and reproduces the
+        // duplicate bag row the fix exists to prevent. There is no way to rebuild
+        // the variant id from a stored entry — the variant list isn't in it — so
+        // a stale entry cannot be repaired, only dropped.
+        //
+        // Every current write sets cartLine, including single-variant products
+        // (toCartItem returns the bare product id there, but still returns a
+        // line), so `cartLine == null` identifies legacy entries exactly.
+        // Bundles never enter the wishlist — BundleCard has no wishlist control —
+        // so nothing legitimate is caught by this.
         const restored = (JSON.parse(raw) as WishlistProduct[]).filter(
-          (p) => typeof p.id === "string"
+          (p) => typeof p.id === "string" && p.cartLine != null
         );
         // One-time hydrate from localStorage on mount; can't read storage
         // during SSR/render without a hydration mismatch, so restore here.

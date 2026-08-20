@@ -15,12 +15,23 @@ export default function WishlistSidebar() {
     useWishlist();
   const { addItem, setCartOpen } = useCart();
 
-  // The wishlist keys entries by PRODUCT while the cart keys lines by VARIANT,
-  // so a saved item can't be handed to the cart as-is — that produced a bare
+  // The wishlist keys entries by PRODUCT while the cart keys lines by VARIANT, so
+  // a saved item can't be handed to the cart as-is — that produced a bare
   // `product:1` row alongside the `product:1#4567` the card's quick-add builds,
-  // i.e. the same product twice with independent quantities (#63). `cartLine`
-  // was captured by toCartItem() at wish time; fall back to the product fields
-  // for entries saved before it existed, and for bundles, which have no variants.
+  // i.e. the same product twice with independent quantities (#63). `cartLine` is
+  // captured by toCartItem() at wish time.
+  //
+  // This is also what the row RENDERS, not just what it adds. The two must come
+  // from one source: `item.price` is priceRange.minVariantPrice and `item.name`
+  // has no variant suffix, while cartLine carries the selected variant's price
+  // and label. Rendering the product fields while adding the variant line let the
+  // drawer read "Plant Protein Luxe · R 450" and then drop
+  // "Plant Protein Luxe — 60 servings · R 750" into the bag. The card path
+  // diverges too whenever defaultVariant() — first *available*, not cheapest —
+  // isn't the min-price variant.
+  //
+  // Entries restored without a cartLine are dropped in WishlistContext, so the
+  // fallback here is a type-level total rather than a live path.
   const toBagLine = (item: WishlistProduct) => {
     const { cartLine, ...product } = item;
     return cartLine ?? product;
@@ -116,7 +127,10 @@ export default function WishlistSidebar() {
       ) : (
         <div className="p-5 flex flex-col gap-3">
           <AnimatePresence mode="popLayout">
-            {items.map((item) => (
+            {items.map((item) => {
+              // Show exactly what Move to bag will add — see toBagLine.
+              const line = toBagLine(item);
+              return (
               <motion.div
                 key={item.id}
                 layout
@@ -138,7 +152,7 @@ export default function WishlistSidebar() {
                 >
                   <Image
                     src={item.image}
-                    alt={item.name}
+                    alt={line.name}
                     fill
                     className="object-cover"
                     sizes="60px"
@@ -151,7 +165,7 @@ export default function WishlistSidebar() {
                     className="label-caps mb-1"
                     style={{ color: "rgba(201,151,122,0.8)", fontSize: "8px" }}
                   >
-                    {item.category}
+                    {line.category}
                   </p>
                   <p
                     className="leading-tight mb-2 truncate"
@@ -162,7 +176,7 @@ export default function WishlistSidebar() {
                       fontWeight: 500,
                     }}
                   >
-                    {item.name}
+                    {line.name}
                   </p>
                   <p
                     style={{
@@ -172,7 +186,7 @@ export default function WishlistSidebar() {
                       fontWeight: 400,
                     }}
                   >
-                    {formatPrice(item.price)}
+                    {formatPrice(line.price)}
                   </p>
                 </div>
 
@@ -187,7 +201,7 @@ export default function WishlistSidebar() {
                       background: "rgba(201,151,122,0.1)",
                       border: "1px solid rgba(201,151,122,0.25)",
                     }}
-                    aria-label={`Move ${item.name} to bag`}
+                    aria-label={`Move ${line.name} to bag`}
                   >
                     <ShoppingBag size={12} className="text-rose-gold" />
                   </motion.button>
@@ -201,13 +215,14 @@ export default function WishlistSidebar() {
                       background: "rgba(239,68,68,0.07)",
                       border: "1px solid rgba(239,68,68,0.18)",
                     }}
-                    aria-label={`Remove ${item.name} from wishlist`}
+                    aria-label={`Remove ${line.name} from wishlist`}
                   >
                     <X size={12} style={{ color: "rgba(239,68,68,0.7)" }} />
                   </motion.button>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </AnimatePresence>
         </div>
       )}
