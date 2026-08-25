@@ -11,10 +11,26 @@ export default function BundleCard({
   bundle,
   index,
   isInView,
+  href,
+  onShopClick,
 }: {
   bundle: Bundle;
   index: number;
   isInView: boolean;
+  /**
+   * Where "Shop Bundle" sends the shopper. The card renders on two pages, so the
+   * destination can't be hardcoded: from the home page it's `/store`, but on
+   * `/store` itself that would be a self-link — a control that promises
+   * something and does nothing.
+   */
+  href: string;
+  /**
+   * Optional same-page handler. `/store` passes one that scrolls to the
+   * collection instead of navigating, matching `StoreHero`'s `onShopClick`; the
+   * codebase measures the navbar rather than using `scroll-margin-top`, so a bare
+   * anchor jump would land under it. `href` stays the no-JS fallback.
+   */
+  onShopClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 }) {
   // No add-to-bag: a bundle has no Shopify variant, so it could never produce a
   // `merchandiseId` for the checkout handoff (#92). It used to build a
@@ -95,7 +111,8 @@ export default function BundleCard({
 
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
                 <Link
-                  href="/store"
+                  href={href}
+                  onClick={onShopClick}
                   aria-label={`Shop the ${bundle.name} in the store`}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-[10px] font-semibold tracking-wide uppercase transition-all"
                   style={{

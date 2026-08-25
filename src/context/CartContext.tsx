@@ -75,8 +75,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
           // an unbuyable line in front of the checkout handoff. Two things make
           // dropping safe: `clearLocalUserState()` already wipes this key on
           // sign-out, and nothing is in production yet, so no real bag is lost.
+          // Positive check rather than `!== undefined`: the parsed value is
+          // untrusted JSON, so anything that isn't a well-formed variantId —
+          // absent, or a number from a hand-edited store — is treated as legacy.
           const restored = parsed.filter(
-            (p) => typeof p.id === "string" && p.variantId !== undefined
+            (p) =>
+              typeof p.id === "string" &&
+              (typeof p.variantId === "string" || p.variantId === null)
           );
           // One-time hydrate from localStorage on mount; can't read storage
           // during SSR/render without a hydration mismatch, so restore here.

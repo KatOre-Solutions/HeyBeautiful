@@ -81,8 +81,19 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         // line), so `cartLine == null` identifies legacy entries exactly.
         // Bundles never enter the wishlist — BundleCard has no wishlist control —
         // so nothing legitimate is caught by this.
+        //
+        // The same reasoning extends to a cartLine captured before `variantId`
+        // existed (#92). That is a *stale-shaped* line rather than a missing one,
+        // so `cartLine != null` lets it through and `toBagLine` hands it to the
+        // bag verbatim — putting a line with `variantId: undefined` in the cart,
+        // which JSON.stringify then omits entirely, so the cart's own restore
+        // filter silently discards the row on the next load. Probe the captured
+        // line's field, not merely the line's presence.
         const restored = (JSON.parse(raw) as WishlistProduct[]).filter(
-          (p) => typeof p.id === "string" && p.cartLine != null
+          (p) =>
+            typeof p.id === "string" &&
+            p.cartLine != null &&
+            p.cartLine.variantId !== undefined
         );
         // One-time hydrate from localStorage on mount; can't read storage
         // during SSR/render without a hydration mismatch, so restore here.

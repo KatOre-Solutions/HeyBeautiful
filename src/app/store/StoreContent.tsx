@@ -63,6 +63,20 @@ export default function StoreContent({ products }: { products: ShopifyProduct[] 
 
   const clearCategory = useCallback(() => setActiveCategory(ALL_CATEGORIES), []);
 
+  /**
+   * On this page "Shop Bundle" would otherwise link to `/store` — the page the
+   * shopper is already on. Send them to the collection instead, reusing the same
+   * measured scroll `StoreHero` uses. The card keeps `#collection` as its href so
+   * the control still works without JS.
+   */
+  const handleBundleShop = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      scrollToCollection();
+    },
+    [scrollToCollection]
+  );
+
   return (
     <>
       <StoreHero onShopClick={scrollToCollection} />
@@ -117,7 +131,14 @@ export default function StoreContent({ products }: { products: ShopifyProduct[] 
 
           <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
             {bundles.map((bundle, index) => (
-              <BundleCard key={bundle.id} bundle={bundle} index={index} isInView={bundlesInView} />
+              <BundleCard
+                key={bundle.id}
+                bundle={bundle}
+                index={index}
+                isInView={bundlesInView}
+                href={`#${COLLECTION_ID}`}
+                onShopClick={handleBundleShop}
+              />
             ))}
           </div>
         </div>

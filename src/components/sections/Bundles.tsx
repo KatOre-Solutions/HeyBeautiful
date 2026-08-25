@@ -58,7 +58,13 @@ export default function Bundles() {
         {/* Bundles grid */}
         <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
           {bundles.map((bundle, index) => (
-            <BundleCard key={bundle.id} bundle={bundle} index={index} isInView={isInView} />
+            <BundleCard
+              key={bundle.id}
+              bundle={bundle}
+              index={index}
+              isInView={isInView}
+              href="/store"
+            />
           ))}
         </div>
       </div>
