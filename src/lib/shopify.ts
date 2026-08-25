@@ -138,6 +138,18 @@ function parseRating(raw: string | null | undefined): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/**
+ * Storefront API version. Every Shopify surface must agree on this: the webhooks
+ * registered in admin are signed against the version they were registered for,
+ * so a mismatch changes the payload shape (see `.env.example`).
+ */
+const API_VERSION = "2026-04";
+
+/** Storefront GraphQL endpoint. `domain` must already carry its scheme. */
+function endpoint(domain: string): string {
+  return `${domain}/api/${API_VERSION}/graphql.json`;
+}
+
 function isConfigured(): boolean {
   return Boolean(
     process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN &&
@@ -155,7 +167,7 @@ async function shopifyFetch<T>(
   if (!domain || !token) return null;
 
   try {
-    const response = await fetch(`${domain}/api/2026-04/graphql.json`, {
+    const response = await fetch(endpoint(domain), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -281,4 +293,178 @@ export async function getProductBySlug(
   );
 
   return data?.product ? toProduct(data.product) : null;
+}
+
+// ─── Checkout handoff (#31) ────────────────────────────────────────────────
+//
+// The bag is turned into a Shopify cart and the shopper is sent to the
+// `checkoutUrl` Shopify returns. Shopify then owns payment, PCI scope, tax,
+// shipping rates and the order record — none of that belongs in this repo, and
+// the payment gateway (PayFast) is configured in the Shopify admin, not here.
+
+/**
+ * A bag line, reduced to what Shopify needs. `variantId` is the NUMERIC id the
+ * cart carries (#92); the gid is rebuilt below — the inverse of `gidToId`.
+ */
+export interface CheckoutLine {
+  variantId: string;
+  quantity: number;
+}
+
+/** Discriminated result so callers never handle GraphQL shapes. */
+export type CreateCartResult =
+  | { ok: true; checkoutUrl: string }
+  | { ok: false; reason: "unconfigured" | "transport" | "rejected" };
+
+/**
+ * NOTE the response selection: `cart { checkoutUrl }` and nothing else.
+ *
+ * A cart id is `gid://shopify/Cart/<token>?key=<secret>` — Shopify's docs say to
+ * treat that key like a password and keep it out of client-side code. We never
+ * need it (the cart is created and immediately handed off), so it is never
+ * selected, and therefore can't leak through this route by accident.
+ */
+const CART_CREATE_MUTATION = `
+  mutation CreateCart($lines: [CartLineInput!]!, $buyerIdentity: CartBuyerIdentityInput) {
+    cartCreate(input: { lines: $lines, buyerIdentity: $buyerIdentity }) {
+      cart { checkoutUrl }
+      userErrors { field message }
+    }
+  }
+`;
+
+interface CartCreateResponse {
+  cartCreate: {
+    cart: { checkoutUrl: string } | null;
+    userErrors: Array<{ field: string[] | null; message: string }>;
+  } | null;
+}
+
+/**
+ * Sibling of `shopifyFetch` for mutations.
+ *
+ * Deliberately NOT `shopifyFetch`: that helper sets
+ * `next: { revalidate: 3600, tags: ["products"] }`, which would cache a cart
+ * creation for an hour and hang it off the products tag — so two shoppers could
+ * be handed the same checkout. `cache: "no-store"` is the whole point.
+ */
+async function storefrontMutate<T>(
+  query: string,
+  variables: Record<string, unknown>
+): Promise<T | null> {
+  const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
+  const token = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN;
+
+  if (!domain || !token) return null;
+
+  try {
+    const response = await fetch(endpoint(domain), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Storefront-Access-Token": token,
+      },
+      body: JSON.stringify({ query, variables }),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.error("Shopify mutation error:", response.status);
+      return null;
+    }
+
+    const json = await response.json();
+
+    if (json.errors) {
+      console.error("Shopify mutation query errors:", json.errors);
+      return null;
+    }
+
+    return (json.data as T) ?? null;
+  } catch (err) {
+    console.error("Shopify mutation failed:", err);
+    return null;
+  }
+}
+
+/**
+ * Creates a Shopify cart and returns its checkout URL.
+ *
+ * `email` is a checkout PREFILL, not an identity claim — it reaches this
+ * function from the browser, and #57 is explicit that a client-sent value is not
+ * a trust boundary. Shopify collects and owns the authoritative order details
+ * regardless; the only effect of a wrong value here is a wrong prefill.
+ */
+export async function createCart(
+  lines: CheckoutLine[],
+  email?: string
+): Promise<CreateCartResult> {
+  if (!isConfigured()) return { ok: false, reason: "unconfigured" };
+
+  const data = await storefrontMutate<CartCreateResponse>(CART_CREATE_MUTATION, {
+    lines: lines.map((l) => ({
+      merchandiseId: `gid://shopify/ProductVariant/${l.variantId}`,
+      quantity: l.quantity,
+    })),
+    buyerIdentity: email ? { email } : undefined,
+  });
+
+  if (data === null) return { ok: false, reason: "transport" };
+
+  // `userErrors` is where the Cart API reports business failures — a variant that
+  // doesn't exist, is unpublished, or is out of stock. They arrive INSIDE `data`
+  // with a 200, so the `json.errors` check above never sees them. Missing this is
+  // the classic way a broken checkout looks like a working one.
+  const payload = data.cartCreate;
+  const userErrors = payload?.userErrors ?? [];
+
+  if (userErrors.length > 0) {
+    console.error("Shopify cartCreate userErrors:", userErrors);
+    return { ok: false, reason: "rejected" };
+  }
+
+  const checkoutUrl = payload?.cart?.checkoutUrl;
+
+  if (!checkoutUrl) {
+    console.error("Shopify cartCreate returned no checkoutUrl");
+    return { ok: false, reason: "rejected" };
+  }
+
+  return { ok: true, checkoutUrl };
+}
+
+/**
+ * Fails closed on anything that isn't a Shopify checkout URL.
+ *
+ * `src/lib/redirect.ts` is the security boundary for INTERNAL destinations and
+ * rejects every absolute URL by design, so routing this through it would rewrite
+ * a valid checkout to `/account`. This is the outbound equivalent: the value is
+ * about to become a top-level navigation, so an unexpected host must not be
+ * followed.
+ */
+export function isValidCheckoutUrl(raw: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return false;
+  }
+
+  if (url.protocol !== "https:") return false;
+
+  // Shopify serves checkout from the shop domain or a shopify.com host depending
+  // on the store's configuration, so both are accepted — but nothing else is.
+  const shopHost = (() => {
+    try {
+      return new URL(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN ?? "").host;
+    } catch {
+      return "";
+    }
+  })();
+
+  return (
+    (shopHost !== "" && url.host === shopHost) ||
+    url.host === "shopify.com" ||
+    url.host.endsWith(".shopify.com")
+  );
 }
