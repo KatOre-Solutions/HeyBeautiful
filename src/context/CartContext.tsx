@@ -13,8 +13,19 @@ import {
 import { CART_STORAGE_KEY as STORAGE_KEY } from "@/lib/constants";
 
 export interface CartProduct {
-  /** Namespaced key, e.g. "product:1" or "bundle:glow" — never a bare number. */
+  /**
+   * Namespaced key, e.g. "product:1" — never a bare number. Variant-specific
+   * lines append `#<variantId>` so two sizes are distinct rows. Bundles no
+   * longer enter the bag (#92): they have no Shopify variant, so they could
+   * never be checked out.
+   */
   id: string;
+  /**
+   * Numeric Shopify variant id, mirroring `CartLine.variantId` (#92). `null`
+   * means the line cannot be purchased. See the restore filter below for how
+   * entries persisted before this field are handled.
+   */
+  variantId: string | null;
   name: string;
   category: string;
   price: number;
@@ -57,7 +68,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (Array.isArray(parsed)) {
           // Drop legacy entries with numeric ids (pre-#20): they no longer map to
           // any product and could collide with the new namespaced keys.
-          const restored = parsed.filter((p) => typeof p.id === "string");
+          //
+          // Also drop anything saved before `variantId` existed (#92), mirroring
+          // what the wishlist does for `cartLine`. A stored line cannot be
+          // repaired — the variant list isn't in it — so falling back would put
+          // an unbuyable line in front of the checkout handoff. Two things make
+          // dropping safe: `clearLocalUserState()` already wipes this key on
+          // sign-out, and nothing is in production yet, so no real bag is lost.
+          const restored = parsed.filter(
+            (p) => typeof p.id === "string" && p.variantId !== undefined
+          );
           // One-time hydrate from localStorage on mount; can't read storage
           // during SSR/render without a hydration mismatch, so restore here.
           // eslint-disable-next-line react-hooks/set-state-in-effect

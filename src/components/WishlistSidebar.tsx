@@ -8,6 +8,7 @@ import { useCart } from "@/context/CartContext";
 import SideDrawer from "@/components/SideDrawer";
 import { ease } from "@/lib/motion";
 import { formatPrice } from "@/lib/format";
+import type { CartLine } from "@/lib/product";
 
 
 export default function WishlistSidebar() {
@@ -31,10 +32,12 @@ export default function WishlistSidebar() {
   // isn't the min-price variant.
   //
   // Entries restored without a cartLine are dropped in WishlistContext, so the
-  // fallback here is a type-level total rather than a live path.
-  const toBagLine = (item: WishlistProduct) => {
+  // fallback here is a type-level total rather than a live path. Its `variantId:
+  // null` says the same thing structurally: a line with no captured variant has
+  // nothing to buy, and #31 rejects it rather than guessing a variant.
+  const toBagLine = (item: WishlistProduct): CartLine => {
     const { cartLine, ...product } = item;
-    return cartLine ?? product;
+    return cartLine ?? { ...product, variantId: null };
   };
 
   // Move every saved item into the bag (and out of the wishlist), then hand
