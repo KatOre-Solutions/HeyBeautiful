@@ -30,6 +30,20 @@ export default function CheckoutContent() {
   // live path. Better a disabled button than a rejected checkout.
   const unpurchasable = items.some((item) => item.variantId === null);
 
+  // Pressing Back from Shopify restores this page from the bfcache (the norm on
+  // iOS Safari, common elsewhere), and React state comes back with it — including
+  // `pending: true`, which is deliberately left set on the success path below.
+  // Without this the shopper returns to a button stuck on "Taking you to
+  // checkout…" and cannot retry short of a hard reload. The bag survives but
+  // checkout doesn't, which defeats the point of keeping the bag at all.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setPending(false);
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
   const handleCheckout = async () => {
     if (pending) return;
     setError("");

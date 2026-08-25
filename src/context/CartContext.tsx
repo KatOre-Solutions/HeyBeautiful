@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { CART_STORAGE_KEY as STORAGE_KEY } from "@/lib/constants";
+import { CART_STORAGE_KEY as STORAGE_KEY, MAX_CART_QUANTITY } from "@/lib/constants";
 
 export interface CartProduct {
   /**
@@ -123,10 +123,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateQuantity = useCallback((id: string, quantity: number) => {
+    // Clamped to the same ceiling the checkout endpoint enforces (#31), so the
+    // control simply stops rather than letting a shopper build a bag that is
+    // rejected at the last step.
+    const capped = Math.min(quantity, MAX_CART_QUANTITY);
     setItems((prev) =>
-      quantity <= 0
+      capped <= 0
         ? prev.filter((p) => p.id !== id)
-        : prev.map((p) => (p.id === id ? { ...p, quantity } : p))
+        : prev.map((p) => (p.id === id ? { ...p, quantity: capped } : p))
     );
   }, []);
 

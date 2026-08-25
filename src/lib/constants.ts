@@ -28,3 +28,12 @@ export const MIN_PASSWORD_LENGTH = 8;
 /** Cart and wishlist persistence keys. Cleared on sign-out — see `clearLocalUserState`. */
 export const CART_STORAGE_KEY = "hb-cart";
 export const WISHLIST_STORAGE_KEY = "hb-wishlist";
+
+/**
+ * Bag caps, shared by the cart UI and the checkout endpoint (#31) so the two
+ * can't disagree. Without a shared limit the cart happily counts past whatever
+ * the endpoint accepts, and the shopper meets a 400 at the last step with no way
+ * to tell which line is at fault.
+ */
+export const MAX_CART_QUANTITY = 100;
+export const MAX_CART_LINES = 50;

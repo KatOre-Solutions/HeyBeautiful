@@ -350,20 +350,30 @@ interface CartCreateResponse {
  */
 async function storefrontMutate<T>(
   query: string,
-  variables: Record<string, unknown>
+  variables: Record<string, unknown>,
+  buyerIp?: string
 ): Promise<T | null> {
   const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
   const token = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN;
 
   if (!domain || !token) return null;
 
+  // Shopify meters a public Storefront token PER CLIENT IP. Server-side calls
+  // would otherwise all be attributed to this server's IP — one shared bucket for
+  // every shopper's cart AND the catalogue reads in `shopifyFetch`, so a flood of
+  // cart creations could throttle `getProducts()` and empty the store's grid.
+  // Forwarding the buyer's IP is Shopify's documented remedy for exactly this.
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Shopify-Storefront-Access-Token": token,
+  };
+
+  if (buyerIp) headers["Shopify-Storefront-Buyer-IP"] = buyerIp;
+
   try {
     const response = await fetch(endpoint(domain), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Storefront-Access-Token": token,
-      },
+      headers,
       body: JSON.stringify({ query, variables }),
       cache: "no-store",
     });
@@ -397,17 +407,22 @@ async function storefrontMutate<T>(
  */
 export async function createCart(
   lines: CheckoutLine[],
-  email?: string
+  email?: string,
+  buyerIp?: string
 ): Promise<CreateCartResult> {
   if (!isConfigured()) return { ok: false, reason: "unconfigured" };
 
-  const data = await storefrontMutate<CartCreateResponse>(CART_CREATE_MUTATION, {
-    lines: lines.map((l) => ({
-      merchandiseId: `gid://shopify/ProductVariant/${l.variantId}`,
-      quantity: l.quantity,
-    })),
-    buyerIdentity: email ? { email } : undefined,
-  });
+  const data = await storefrontMutate<CartCreateResponse>(
+    CART_CREATE_MUTATION,
+    {
+      lines: lines.map((l) => ({
+        merchandiseId: `gid://shopify/ProductVariant/${l.variantId}`,
+        quantity: l.quantity,
+      })),
+      buyerIdentity: email ? { email } : undefined,
+    },
+    buyerIp
+  );
 
   if (data === null) return { ok: false, reason: "transport" };
 
@@ -442,6 +457,25 @@ export async function createCart(
  * about to become a top-level navigation, so an unexpected host must not be
  * followed.
  */
+function hostOf(value: string | undefined): string {
+  if (!value) return "";
+  try {
+    return new URL(value).host;
+  } catch {
+    return "";
+  }
+}
+
+/** Shopify-owned hosts. Note `*.myshopify.com` needs its own arm: the string
+ *  "shop.myshopify.com" does NOT end with ".shopify.com". */
+function isShopifyOwnedHost(host: string): boolean {
+  return (
+    host === "shopify.com" ||
+    host.endsWith(".shopify.com") ||
+    host.endsWith(".myshopify.com")
+  );
+}
+
 export function isValidCheckoutUrl(raw: string): boolean {
   let url: URL;
   try {
@@ -452,19 +486,26 @@ export function isValidCheckoutUrl(raw: string): boolean {
 
   if (url.protocol !== "https:") return false;
 
-  // Shopify serves checkout from the shop domain or a shopify.com host depending
-  // on the store's configuration, so both are accepted — but nothing else is.
-  const shopHost = (() => {
-    try {
-      return new URL(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN ?? "").host;
-    } catch {
-      return "";
-    }
-  })();
+  if (isShopifyOwnedHost(url.host)) return true;
 
-  return (
-    (shopHost !== "" && url.host === shopHost) ||
-    url.host === "shopify.com" ||
-    url.host.endsWith(".shopify.com")
-  );
+  // Shopify returns `checkoutUrl` on the shop's PRIMARY domain, which is not
+  // necessarily the host the API request went to. A store with a custom primary
+  // domain hands back `https://shop.example.co.za/cart/c/…`, which is neither the
+  // configured `*.myshopify.com` API domain nor a Shopify-owned host — so without
+  // this arm every checkout would be rejected the day a real domain is attached
+  // (#18). Set NEXT_PUBLIC_SHOPIFY_CHECKOUT_DOMAIN to that primary domain.
+  const configured = [
+    hostOf(process.env.NEXT_PUBLIC_SHOPIFY_CHECKOUT_DOMAIN),
+    hostOf(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN),
+  ].filter((h) => h !== "");
+
+  if (configured.length === 0) {
+    // A domain set without its scheme parses to "" and would silently narrow the
+    // allowlist. Say so rather than failing mysteriously at checkout.
+    console.error(
+      "No usable Shopify host configured — NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN must include its scheme (https://…)."
+    );
+  }
+
+  return configured.includes(url.host);
 }

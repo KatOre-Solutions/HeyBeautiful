@@ -166,6 +166,18 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   the `json.errors` check never sees them.
   The bag is **kept** on handoff, not cleared: an abandoned payment or a back-button press must
   not cost the shopper their bag. Clearing on confirmation needs an `orders/create` webhook (#67).
+  Because `pending` is deliberately left set while the browser navigates away, `CheckoutContent`
+  resets it on `pageshow` with `event.persisted` — a bfcache restore (Back from Shopify) otherwise
+  returns the shopper to a permanently disabled button.
+  `checkoutUrl` comes back on the shop's **primary** domain, which is not necessarily the API
+  domain — set `NEXT_PUBLIC_SHOPIFY_CHECKOUT_DOMAIN` once a custom domain is connected (#18), or
+  the guard rejects Shopify's own URL. **Never log a checkout URL**: it carries the cart's secret
+  `?key=`. Log the host.
+  Server-side Storefront calls forward `Shopify-Storefront-Buyer-IP`. Shopify meters a public
+  token per client IP, so without it every shopper's cart shares one bucket with the catalogue
+  reads and a flood could empty the store's grid.
+  Bag caps (`MAX_CART_QUANTITY`, `MAX_CART_LINES`) live in `@/lib/constants` so the cart UI and the
+  endpoint enforce the same ceiling — a server-only limit is a dead end the shopper can't diagnose.
 - **Webhook auth** (#4): `/api/revalidate` verifies Shopify's `X-Shopify-Hmac-Sha256`
   (base64 HMAC-SHA256 over the raw body) with `timingSafeEqual`. Needs
   `SHOPIFY_WEBHOOK_SECRET` — the value Shopify shows under Settings → Notifications →
