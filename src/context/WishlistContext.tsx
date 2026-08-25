@@ -9,14 +9,38 @@ import {
 } from "react";
 
 import { WISHLIST_STORAGE_KEY as STORAGE_KEY } from "@/lib/constants";
+import type { CartLine } from "@/lib/product";
 
 export interface WishlistProduct {
-  /** Namespaced key, e.g. "product:1" — matches the cart's id scheme. */
+  /**
+   * Namespaced PRODUCT key, e.g. "product:1" — never variant-keyed. A wishlist
+   * entry is a product, not a variant: `isWishlisted(product.id)` is what fills
+   * the heart on both the card and the detail page, so this has to stay the id
+   * those callers already hold.
+   */
   id: string;
   name: string;
   category: string;
   price: number;
   image: string;
+  /**
+   * The bag line this entry becomes when moved to the cart, captured at wish
+   * time via `toCartItem()` (#63).
+   *
+   * The cart keys lines by variant (`product:1#4567`) while the wishlist keys by
+   * product, so the two cannot share one id. Without this the wishlist handed
+   * the cart a bare `product:1` and a product added from both surfaces opened
+   * two rows with independent quantities.
+   *
+   * Optional only for the persisted shape: entries written before this existed
+   * have none, and are dropped on restore below rather than falling back —
+   * falling back would reproduce exactly the duplicate row this prevents.
+   *
+   * Every live write sets it. (An earlier revision justified the optionality
+   * with "bundles have no variants"; that is wrong — BundleCard has no wishlist
+   * control, so bundles never enter the wishlist at all.)
+   */
+  cartLine?: CartLine;
 }
 
 interface WishlistContextType {
@@ -42,9 +66,23 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        // Keep only string-id entries (guards against legacy/corrupt data).
+        // Keep only string-id entries (guards against legacy/corrupt data), and
+        // drop anything saved before `cartLine` existed (#63).
+        //
+        // Wishlists persist indefinitely, so without this the fix would never
+        // reach anyone who had already saved something: a pre-existing entry has
+        // no cartLine, falls back to its bare `product:1`, and reproduces the
+        // duplicate bag row the fix exists to prevent. There is no way to rebuild
+        // the variant id from a stored entry — the variant list isn't in it — so
+        // a stale entry cannot be repaired, only dropped.
+        //
+        // Every current write sets cartLine, including single-variant products
+        // (toCartItem returns the bare product id there, but still returns a
+        // line), so `cartLine == null` identifies legacy entries exactly.
+        // Bundles never enter the wishlist — BundleCard has no wishlist control —
+        // so nothing legitimate is caught by this.
         const restored = (JSON.parse(raw) as WishlistProduct[]).filter(
-          (p) => typeof p.id === "string"
+          (p) => typeof p.id === "string" && p.cartLine != null
         );
         // One-time hydrate from localStorage on mount; can't read storage
         // during SSR/render without a hydration mismatch, so restore here.

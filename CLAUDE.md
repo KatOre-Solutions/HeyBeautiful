@@ -115,9 +115,19 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
 ## Conventions
 
 - **Cart/wishlist item ids are namespaced strings** — `product:<n>` (the numeric half of the
-  Shopify product gid) and `bundle:<slug>` (e.g. `bundle:glow`). Never bare numbers. Cart lines
-  append the Shopify variant id (e.g. `product:1#4567`); build them with `toCartItem()` from
-  `src/lib/product.ts` rather than by hand. See `CartContext`.
+  Shopify product gid) and `bundle:<slug>` (e.g. `bundle:glow`). Never bare numbers.
+  **The cart owns the variant suffix; the wishlist does not** (#63): cart lines append the
+  Shopify variant id (`product:1#4567`) so two sizes are distinct rows, while a wishlist entry
+  is a *product* and stays `product:1` — `isWishlisted(product.id)` is what fills the heart.
+  Because the two key differently, a wishlist entry carries the `cartLine` that `toCartItem()`
+  built for it at wish time, and `WishlistSidebar` moves *that* to the bag — and **renders it
+  too**, since `item.price` is the product's `minVariantPrice` and would otherwise quote a
+  different figure from the one the bag receives. Never hand a `WishlistProduct` straight to
+  `addItem()`, or one product opens two bag rows. Entries persisted before `cartLine` existed
+  are dropped on restore rather than falling back, because a stale entry can't be repaired —
+  the variant list isn't stored.
+  Build every cart id with `toCartItem()` from `src/lib/product.ts` — it is the only place one
+  is constructed. See `CartContext`.
 - **Catalog data** (#4): products are fetched in `src/lib/shopify.ts` — `getProducts`,
   `getFeaturedProducts`, `getProductBySlug`; the `defaultVariant` / `isSoldOut` /
   `toCartItem` helpers live alongside the types in `src/lib/product.ts`. Fetches are tagged
