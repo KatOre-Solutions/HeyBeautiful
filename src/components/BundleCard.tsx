@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import type { Bundle } from "@/lib/products";
 
@@ -11,23 +11,33 @@ export default function BundleCard({
   bundle,
   index,
   isInView,
+  href,
+  onShopClick,
 }: {
   bundle: Bundle;
   index: number;
   isInView: boolean;
+  /**
+   * Where "Shop Bundle" sends the shopper. The card renders on two pages, so the
+   * destination can't be hardcoded: from the home page it's `/store`, but on
+   * `/store` itself that would be a self-link — a control that promises
+   * something and does nothing.
+   */
+  href: string;
+  /**
+   * Optional same-page handler. `/store` passes one that scrolls to the
+   * collection instead of navigating, matching `StoreHero`'s `onShopClick`; the
+   * codebase measures the navbar rather than using `scroll-margin-top`, so a bare
+   * anchor jump would land under it. `href` stays the no-JS fallback.
+   */
+  onShopClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 }) {
-  const { addItem } = useCart();
-
-  const handleAddBundle = () => {
-    addItem({
-      id: `bundle:${bundle.id}`,
-      name: bundle.name,
-      category: "Bundle",
-      price: bundle.price,
-      image: bundle.products[0],
-    });
-  };
-
+  // No add-to-bag: a bundle has no Shopify variant, so it could never produce a
+  // `merchandiseId` for the checkout handoff (#92). It used to build a
+  // `bundle:<slug>` line by hand — the one cart id in the codebase that bypassed
+  // toCartItem() — which meant a shopper could fill a bag with something the
+  // store cannot sell. The card now sends them to the catalogue instead. Restore
+  // a real purchase path once bundles are modelled as Shopify products (#65).
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
@@ -99,19 +109,21 @@ export default function BundleCard({
                 </span>
               </div>
 
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={handleAddBundle}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-[10px] font-semibold tracking-wide uppercase transition-all"
-                style={{
-                  background: bundle.accentColor,
-                  boxShadow: `0 4px 20px ${bundle.accentColor}45`,
-                }}
-              >
-                Shop Bundle
-                <ArrowRight size={12} />
-              </motion.button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+                <Link
+                  href={href}
+                  onClick={onShopClick}
+                  aria-label={`Shop the ${bundle.name} in the store`}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-[10px] font-semibold tracking-wide uppercase transition-all"
+                  style={{
+                    background: bundle.accentColor,
+                    boxShadow: `0 4px 20px ${bundle.accentColor}45`,
+                  }}
+                >
+                  Shop Bundle
+                  <ArrowRight size={12} />
+                </Link>
+              </motion.div>
             </div>
           </div>
         </div>

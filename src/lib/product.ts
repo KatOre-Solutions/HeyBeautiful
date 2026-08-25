@@ -123,6 +123,19 @@ export function isSoldOut(product: ShopifyProduct): boolean {
  */
 export interface CartLine {
   id: string;
+  /**
+   * Numeric Shopify variant id — the same value the `#<variantId>` half of `id`
+   * already carries, exposed as a field so nothing has to split the key back
+   * apart to reach it (#92). Numeric, not a gid: `shopify.ts` stores the trailing
+   * segment, and the checkout handoff rebuilds
+   * `gid://shopify/ProductVariant/<id>` at mutation time.
+   *
+   * `null` means the line has no Shopify variant and therefore cannot be bought.
+   * Required rather than optional — unlike `WishlistProduct.cartLine?`, whose
+   * optionality exists purely for the persisted shape — so the compiler
+   * enumerates every producer. #31 must reject `null` rather than assume.
+   */
+  variantId: string | null;
   name: string;
   category: string;
   price: number;
@@ -146,6 +159,11 @@ export function toCartItem(
 
   return {
     id: v ? `${product.id}#${v.id}` : product.id,
+    // Defensive rather than load-bearing: `v` is only undefined for a product
+    // with no variants, which today means the unconfigured-store "Coming Soon"
+    // tiles — and those already have every purchase control stripped, so they
+    // never reach the bag. TypeScript can't prove that, and #31 shouldn't trust it.
+    variantId: v?.id ?? null,
     name: hasChoice && v ? `${product.name} — ${v.label}` : product.name,
     category: product.category,
     price: v?.price ?? product.price,

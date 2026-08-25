@@ -115,7 +115,10 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
 ## Conventions
 
 - **Cart/wishlist item ids are namespaced strings** — `product:<n>` (the numeric half of the
-  Shopify product gid) and `bundle:<slug>` (e.g. `bundle:glow`). Never bare numbers.
+  Shopify product gid). Never bare numbers. **Bundles no longer enter the cart** (#92): with no
+  Shopify variant they have no `merchandiseId` and could never be checked out, so `BundleCard`
+  links to the catalogue instead of adding to the bag. `bundle:<slug>` is therefore no longer a
+  cart key — restoring one depends on modelling bundles as Shopify products (#65).
   **The cart owns the variant suffix; the wishlist does not** (#63): cart lines append the
   Shopify variant id (`product:1#4567`) so two sizes are distinct rows, while a wishlist entry
   is a *product* and stays `product:1` — `isWishlisted(product.id)` is what fills the heart.
@@ -128,6 +131,13 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   the variant list isn't stored.
   Build every cart id with `toCartItem()` from `src/lib/product.ts` — it is the only place one
   is constructed. See `CartContext`.
+  **A cart line also carries `variantId`** (#92) — the same numeric variant id the `#` suffix
+  encodes, exposed as a field so the checkout handoff never splits the key apart. It is
+  `string | null` and **required**, so the compiler names every producer; `null` means the line
+  has no Shopify variant and cannot be bought, which #31 must reject rather than assume. Store
+  the numeric id, not a gid — `gid://shopify/ProductVariant/<id>` is rebuilt at mutation time.
+  Cart entries persisted before the field existed are dropped on restore, same reasoning as
+  `cartLine` above.
 - **Catalog data** (#4): products are fetched in `src/lib/shopify.ts` — `getProducts`,
   `getFeaturedProducts`, `getProductBySlug`; the `defaultVariant` / `isSoldOut` /
   `toCartItem` helpers live alongside the types in `src/lib/product.ts`. Fetches are tagged
@@ -135,7 +145,8 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   the tag on demand via `POST /api/revalidate`.
   With no credentials the store degrades to non-purchasable "Coming Soon" placeholders;
   a *configured* store that errors renders an empty grid rather than fake products.
-  Bundles are still hardcoded in `src/lib/products.ts` — no Shopify equivalent yet.
+  Bundles are still hardcoded in `src/lib/products.ts` — no Shopify equivalent yet, and
+  display-only since #92.
 - **Webhook auth** (#4): `/api/revalidate` verifies Shopify's `X-Shopify-Hmac-Sha256`
   (base64 HMAC-SHA256 over the raw body) with `timingSafeEqual`. Needs
   `SHOPIFY_WEBHOOK_SECRET` — the value Shopify shows under Settings → Notifications →

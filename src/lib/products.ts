@@ -2,9 +2,14 @@
 // are a merchandising construct with no Shopify equivalent yet, so they remain
 // placeholder content until they're modelled as Shopify products or a
 // collection.
+//
+// DISPLAY ONLY. Bundles no longer enter the cart (#92) — with no Shopify variant
+// they have no `merchandiseId`, so a bundle line could never be checked out.
+// BundleCard links to the catalogue instead of adding to the bag. Modelling them
+// as real Shopify products (#65) is what restores a purchase path.
 
 export interface Bundle {
-  /** Bundle slug; cart key is built as `bundle:${id}`. */
+  /** Bundle slug. Used for React keys and copy — no longer a cart key (#92). */
   id: string;
   name: string;
   tagline: string;
