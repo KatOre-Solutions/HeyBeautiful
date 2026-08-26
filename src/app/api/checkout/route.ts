@@ -58,12 +58,14 @@ function parseLines(raw: unknown): CheckoutLine[] | string {
       return "That bag contains an item that can't be purchased.";
     }
 
-    if (
-      typeof quantity !== "number" ||
-      !Number.isInteger(quantity) ||
-      quantity < 1 ||
-      quantity > MAX_CART_QUANTITY
-    ) {
+    // Split from the cap below so each failure gets an accurate message: a
+    // quantity of 0 or 2.5 is malformed, not "too many", and only a hand-rolled
+    // POST can produce one — the cart UI clamps to MAX_CART_QUANTITY.
+    if (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity < 1) {
+      return "That bag contains an item with an invalid quantity.";
+    }
+
+    if (quantity > MAX_CART_QUANTITY) {
       return `Each item is limited to ${MAX_CART_QUANTITY}. Please reduce the quantity.`;
     }
 
