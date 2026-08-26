@@ -32,6 +32,9 @@ export const metadata: Metadata = {
     "glow supplements",
     "hey beautiful",
   ],
+  verification: {
+    google: "MBRhCK7Z0a31F7y4F5nDhSWbf2aeRMW8RwNshOqNgwk",
+  },
   openGraph: {
     title: "Hey Beautiful — Fuel Your Strength. Keep Your Glow.",
     description:
