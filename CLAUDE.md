@@ -215,6 +215,19 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   `CheckoutContent` (the edge `proxy.ts` can't read Firebase's `emailVerified`), redirecting
   unverified users to `/verify-email?from=<dest>`. `/account` is advisory (soft reminder only).
   `AuthContext.reloadUser()` refreshes `emailVerified`; the verify page polls it to auto-continue.
+- **Site URL and indexing** (#14): `siteUrl()` in `src/lib/site.ts` is the **single** source of
+  the public origin — it feeds both `metadataBase` in `layout.tsx` and `sitemap.ts`, so the two
+  can never quote different hosts. It resolves `NEXT_PUBLIC_SITE_URL` → Netlify's
+  `DEPLOY_PRIME_URL`/`URL` → localhost; **server only**, since those Netlify vars carry no
+  `NEXT_PUBLIC_` prefix and would be `undefined` in a client bundle (which is why it isn't in
+  `@/lib/constants`, imported by the cart and auth contexts). `isIndexableDeploy()` blocks
+  crawling on deploy previews so they can't compete with production as duplicate content; it
+  fails **open** on an unrecognised `CONTEXT`, because silently de-indexing the real site is the
+  worse failure. `robots.ts` keeps its own private-path list rather than importing the proxy's —
+  the proxy is an access boundary, robots.txt is a request to well-behaved crawlers, and sharing
+  a list would imply robots.txt protects something. `sitemap.ts` must keep using the same
+  `filter((p) => p.slug)` predicate as `generateStaticParams`, or it will advertise URLs that
+  have no prerendered page.
 - **Page pattern**: a top-level route is a server `page.tsx` (`<Navbar /> … <Footer />` +
   `metadata`) that renders a `"use client"` `*Content.tsx` for interactivity (see
   `app/account`, `app/checkout`). Route protection lives in `src/proxy.ts` (Next 16 renamed the
@@ -267,3 +280,13 @@ internal modules under two casings and instantiates its prerender `workAsyncStor
 twice, producing `InvariantError: Expected workStore to be initialized` on every page
 during static generation. `next dev` is unaffected. Run builds via `npm run build` from a
 terminal opened in the project folder (which uses the real casing).
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
