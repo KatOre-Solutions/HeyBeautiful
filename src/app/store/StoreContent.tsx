@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { bundles } from "@/lib/products";
-import { getShowcaseProducts, type ShopifyProduct } from "@/lib/product";
+import { getShowcaseProducts, toCartItem, type ShopifyProduct } from "@/lib/product";
+import { toAnalyticsItem, trackEcommerce } from "@/lib/analytics";
 import BundleCard from "@/components/BundleCard";
 import BrandStory from "@/components/sections/BrandStory";
 import { NAVBAR_ID } from "@/components/Navbar";
@@ -26,6 +27,17 @@ const SCROLL_GAP = 16;
  * `FeaturedShowcase` is a curated shelf and stays put — see the note in that file.
  */
 export default function StoreContent({ products }: { products: ShopifyProduct[] }) {
+  // One list impression per visit. Capped because GA4 rejects oversized payloads and the
+  // first screenful is what the shopper actually saw.
+  useEffect(() => {
+    if (products.length === 0) return;
+    trackEcommerce(
+      "view_item_list",
+      products.slice(0, 20).map((p) => toAnalyticsItem(toCartItem(p))),
+      { item_list_name: "Store" }
+    );
+  }, [products]);
+
   const reducedMotion = useReducedMotion();
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORIES);
   const bundlesRef = useRef<HTMLDivElement>(null);

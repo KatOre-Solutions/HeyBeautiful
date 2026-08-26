@@ -9,6 +9,7 @@ import { Lock } from "lucide-react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import { toAnalyticsItem, trackEcommerce } from "@/lib/analytics";
 import { formatPrice } from "@/lib/format";
 import { sessionExpiredLoginUrl, withFrom } from "@/lib/redirect";
 import { clearSessionHint } from "@/lib/session";
@@ -48,6 +49,14 @@ export default function CheckoutContent() {
     if (pending) return;
     setError("");
     setPending(true);
+
+    // Fired before the request, not after: this is the last event the funnel gets from us.
+    // Shopify owns everything past the redirect, so `purchase` is reported by Shopify's own
+    // GA4 integration against the same measurement ID — see `src/lib/analytics.ts`.
+    trackEcommerce(
+      "begin_checkout",
+      items.map((item) => toAnalyticsItem(item, item.quantity))
+    );
 
     try {
       const res = await fetch("/api/checkout", {

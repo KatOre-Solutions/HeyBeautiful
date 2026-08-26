@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Star, ShoppingBag, Heart, Check } from "lucide-react";
@@ -11,6 +11,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import ShopifyProductCard from "@/components/ShopifyProductCard";
 import { defaultVariant, isSoldOut, toCartItem, type ShopifyProduct } from "@/lib/product";
+import { toAnalyticsItem, trackEcommerce } from "@/lib/analytics";
 
 function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
   return (
@@ -43,6 +44,14 @@ export default function ProductDetailContent({
   const [activeImage, setActiveImage] = useState(gallery[0]);
   const [variant, setVariant] = useState(() => defaultVariant(product));
   const [added, setAdded] = useState(false);
+
+  // One impression per product. Deliberately not keyed on `variant`: switching size is not
+  // a new product view, and GA4 would read the repeats as separate visits to the page.
+  useEffect(() => {
+    trackEcommerce("view_item", [
+      toAnalyticsItem(toCartItem(product, defaultVariant(product)), 1),
+    ]);
+  }, [product]);
 
   const { addItem } = useCart();
   const { toggleItem, isWishlisted } = useWishlist();

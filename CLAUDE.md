@@ -245,6 +245,25 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   for a related reason: Shopify's `vendor` is not fetched and reads "My Store" on most of the live
   catalogue. Absolute URLs come from `absoluteUrl()`, which passes Shopify CDN URLs through
   untouched.
+- **Analytics** (#16): GA4 behind **Consent Mode v2**. `src/lib/analytics.ts` owns everything;
+  `NEXT_PUBLIC_GA_MEASUREMENT_ID` unset makes the whole thing inert (no script, no banner, every
+  call a no-op), so local and preview builds can't pollute the property.
+  **The consent default is queued by `push()`, not by a component.** It lived in `<Analytics>`'s
+  effect once and that was wrong: React runs child effects before parent ones, so a product page's
+  `view_item` fired *before* the consent default — a measurement command ahead of the consent
+  state Google requires to come first. Driving it from the first event of any kind makes the order
+  impossible to get wrong.
+  **No inline `<script>`.** Unlike the JSON-LD data blocks, an inline script really is subject to
+  `script-src`, so it would need the nonce, so the layout would need `headers()`, so every page
+  would go dynamic. `proxy.ts` needs **three** GA directives — `script-src` for gtag.js,
+  `connect-src` for the `/g/collect` beacons, `img-src` for the pixel fallback; missing the last
+  two is the classic "tag loads, no hits arrive".
+  **`purchase` is deliberately not tracked here** — checkout is Shopify's, so Shopify's own GA4
+  integration reports it against the same measurement ID. Our funnel ends at `begin_checkout`.
+  Cart events live in `CartContext` (the single choke point) and fire **outside** the state
+  updater, since StrictMode invokes updaters twice and would double-count.
+  `ConsentBanner` avoids `AnimatePresence` on purpose: its exit ran but never unmounted the node,
+  leaving an invisible fixed strip that swallowed clicks along the bottom of every page.
 - **Page pattern**: a top-level route is a server `page.tsx` (`<Navbar /> … <Footer />` +
   `metadata`) that renders a `"use client"` `*Content.tsx` for interactivity (see
   `app/account`, `app/checkout`). Route protection lives in `src/proxy.ts` (Next 16 renamed the

@@ -145,10 +145,17 @@ export default function Footer() {
                 © {new Date().getFullYear()} Hey Beautiful. All rights reserved.
               </p>
               <div className="flex gap-4">
-                {["Privacy Policy", "Terms", "Accessibility"].map((label) => (
+                {/* Only Privacy Policy exists so far. Terms and Accessibility are still
+                    `#` placeholders — tracked separately rather than linked to nothing
+                    that looks real. */}
+                {[
+                  { label: "Privacy Policy", href: "/privacy" },
+                  { label: "Terms", href: "#" },
+                  { label: "Accessibility", href: "#" },
+                ].map(({ label, href }) => (
                   <Link
                     key={label}
-                    href="#"
+                    href={href}
                     className="text-white/25 hover:text-white/50 text-xs transition-colors duration-300"
                   >
                     {label}
