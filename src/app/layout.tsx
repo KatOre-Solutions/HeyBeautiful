@@ -3,6 +3,8 @@ import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import { ClientWrapper } from "@/components/ClientWrapper";
 import { siteUrl } from "@/lib/site";
+import JsonLd from "@/components/JsonLd";
+import { organizationJsonLd } from "@/lib/structured-data";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -56,6 +58,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${cormorant.variable} ${manrope.variable}`}>
       <body className="antialiased">
+        {/* Site-wide: the brand is the same on every page, product or not. */}
+        <JsonLd data={organizationJsonLd()} />
         <ClientWrapper>{children}</ClientWrapper>
       </body>
     </html>

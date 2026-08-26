@@ -52,3 +52,16 @@ export function isIndexableDeploy(): boolean {
   const context = process.env.CONTEXT;
   return context === undefined || !PREVIEW_CONTEXTS.includes(context);
 }
+
+/**
+ * Turns a possibly-relative path into an absolute URL.
+ *
+ * schema.org rejects relative URLs, and `ShopifyProduct.image` is not consistently one
+ * thing: a real product carries a `https://cdn.shopify.com/…` URL, while the fallback and
+ * the whole development catalogue use site-relative paths like `/images/item-1.jpeg`. So
+ * anything already absolute passes through untouched.
+ */
+export function absoluteUrl(pathOrUrl: string): string {
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  return `${siteUrl()}/${pathOrUrl.replace(/^\/+/, "")}`;
+}
