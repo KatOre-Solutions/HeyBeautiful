@@ -23,15 +23,23 @@ const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
  * `style-src` deliberately stays on 'unsafe-inline' with no nonce token: Framer
  * Motion, React style={{}}, next/font and optimizeCss all emit inline styles, and
  * per spec a nonce in a directive makes browsers ignore 'unsafe-inline'.
+ *
+ * GA4 (#16) needs three directives, not one: `script-src` for gtag.js itself,
+ * `connect-src` for the `/g/collect` beacons (which move between the
+ * google-analytics.com and analytics.google.com hosts by region), and `img-src`
+ * for the pixel fallback gtag uses when fetch/sendBeacon is unavailable. Missing
+ * the last two is the classic "the tag loads but no hits arrive" failure. Note the
+ * GA consent bootstrap is deliberately NOT an inline script — see `Analytics.tsx`
+ * for why that would have cost every page its static rendering.
  */
 function buildCsp(nonce: string): string {
   return [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' https://apis.google.com https://accounts.google.com https://www.gstatic.com`,
+    `script-src 'self' 'nonce-${nonce}' https://apis.google.com https://accounts.google.com https://www.gstatic.com https://www.googletagmanager.com`,
     `style-src 'self' 'unsafe-inline'`,
-    `img-src 'self' data: blob: https://cdn.shopify.com https://*.googleusercontent.com`,
+    `img-src 'self' data: blob: https://cdn.shopify.com https://*.googleusercontent.com https://www.google-analytics.com https://www.googletagmanager.com`,
     `font-src 'self' data:`,
-    `connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com`,
+    `connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://www.googletagmanager.com`,
     `frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://appleid.apple.com`,
     `media-src 'self'`,
     `object-src 'none'`,
