@@ -147,6 +147,37 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   a *configured* store that errors renders an empty grid rather than fake products.
   Bundles are still hardcoded in `src/lib/products.ts` — no Shopify equivalent yet, and
   display-only since #92.
+- **Checkout handoff** (#31): the bag becomes a Shopify cart via `createCart()` in
+  `src/lib/shopify.ts`, and the shopper is sent to the returned `checkoutUrl`. Shopify owns
+  payment, PCI scope, tax, shipping and the order record; the gateway (PayFast) is configured
+  in the Shopify admin, **never in this repo**.
+  `POST /api/checkout` is the only mutation path. It lives under `/api` on purpose: `proxy.ts`
+  gates everything starting with `/checkout` and excludes `/api`, so a handler under
+  `/checkout/...` — or a Server Action, which posts to the page's own URL — would be answered
+  with a 307 to `/login` on a stale cookie and hand `fetch` an HTML body. It is unauthenticated
+  because it grants nothing a visitor lacks (Shopify cart permalinks do the same with no API),
+  so it validates input tightly instead: numeric variant ids, integer quantities, capped line
+  count. The `email` it receives is a checkout **prefill, not an identity claim** (#57).
+  **Never select `cart { id }`** — a cart id embeds a secret `?key=` that Shopify says to treat
+  like a password. Only `checkoutUrl` is ever requested or returned.
+  Mutations use `storefrontMutate()`, **not** `shopifyFetch()`: the latter caches for an hour
+  under the `products` tag, which would hand two shoppers the same checkout. `userErrors` must
+  be checked explicitly — the Cart API reports business failures inside `data` with a 200, so
+  the `json.errors` check never sees them.
+  The bag is **kept** on handoff, not cleared: an abandoned payment or a back-button press must
+  not cost the shopper their bag. Clearing on confirmation needs an `orders/create` webhook (#67).
+  Because `pending` is deliberately left set while the browser navigates away, `CheckoutContent`
+  resets it on `pageshow` with `event.persisted` — a bfcache restore (Back from Shopify) otherwise
+  returns the shopper to a permanently disabled button.
+  `checkoutUrl` comes back on the shop's **primary** domain, which is not necessarily the API
+  domain — set `NEXT_PUBLIC_SHOPIFY_CHECKOUT_DOMAIN` once a custom domain is connected (#18), or
+  the guard rejects Shopify's own URL. **Never log a checkout URL**: it carries the cart's secret
+  `?key=`. Log the host.
+  Server-side Storefront calls forward `Shopify-Storefront-Buyer-IP`. Shopify meters a public
+  token per client IP, so without it every shopper's cart shares one bucket with the catalogue
+  reads and a flood could empty the store's grid.
+  Bag caps (`MAX_CART_QUANTITY`, `MAX_CART_LINES`) live in `@/lib/constants` so the cart UI and the
+  endpoint enforce the same ceiling — a server-only limit is a dead end the shopper can't diagnose.
 - **Webhook auth** (#4): `/api/revalidate` verifies Shopify's `X-Shopify-Hmac-Sha256`
   (base64 HMAC-SHA256 over the raw body) with `timingSafeEqual`. Needs
   `SHOPIFY_WEBHOOK_SECRET` — the value Shopify shows under Settings → Notifications →

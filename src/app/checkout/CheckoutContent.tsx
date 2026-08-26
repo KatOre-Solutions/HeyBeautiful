@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import { sessionExpiredLoginUrl, withFrom } from "@/lib/redirect";
 import { clearSessionHint } from "@/lib/session";
+import AuthErrorToast from "@/components/auth/AuthErrorToast";
 
 export default function CheckoutContent() {
   const router = useRouter();
@@ -20,6 +21,70 @@ export default function CheckoutContent() {
   // One-shot guard: React Strict Mode double-invokes effects in dev, and we never
   // want two navigations racing.
   const redirected = useRef(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+
+  // A line with no Shopify variant can't be bought (#92). Nothing should be able
+  // to put one in the bag — bundles no longer enter it and placeholder tiles have
+  // no purchase controls — so this is a guard against a future regression, not a
+  // live path. Better a disabled button than a rejected checkout.
+  const unpurchasable = items.some((item) => item.variantId === null);
+
+  // Pressing Back from Shopify restores this page from the bfcache (the norm on
+  // iOS Safari, common elsewhere), and React state comes back with it — including
+  // `pending: true`, which is deliberately left set on the success path below.
+  // Without this the shopper returns to a button stuck on "Taking you to
+  // checkout…" and cannot retry short of a hard reload. The bag survives but
+  // checkout doesn't, which defeats the point of keeping the bag at all.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setPending(false);
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  const handleCheckout = async () => {
+    if (pending) return;
+    setError("");
+    setPending(true);
+
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lines: items.map((item) => ({
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
+          // Prefill only — Shopify collects and owns the real order details.
+          email: user?.email ?? undefined,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.checkoutUrl) {
+        setError(data?.message ?? "We couldn't start checkout. Please try again.");
+        setPending(false);
+        return;
+      }
+
+      // The bag is deliberately NOT cleared: the shopper may abandon payment or
+      // press back, and losing their bag at that moment is how a sale is lost.
+      // Shopify owns the order, so the bag stays until they empty it themselves.
+      //
+      // `pending` is deliberately NOT reset here either — the browser is still
+      // navigating away, and resetting flashes the button back to its idle label.
+      // `router.push` is for internal routes; this is the app's one external
+      // navigation, which CSP's `form-action 'self'` does not restrict.
+      window.location.assign(data.checkoutUrl);
+    } catch {
+      setError("We couldn't reach checkout. Check your connection and try again.");
+      setPending(false);
+    }
+  };
 
   // Two client-side guards the edge proxy can't do (it only sees the presence
   // cookie): (1) stale-cookie / dead session → login; (2) unverified email →
@@ -180,26 +245,42 @@ export default function CheckoutContent() {
               </span>
             </motion.div>
 
-            {/* Payment is not wired up yet — honest placeholder. */}
-            <motion.div
+            <motion.button
               variants={fadeUp}
-              className="mt-7 flex items-center justify-center gap-2 py-4 rounded-full"
-              style={{
-                background: "rgba(201,151,122,0.1)",
-                border: "1px dashed rgba(201,151,122,0.35)",
-              }}
+              type="button"
+              onClick={handleCheckout}
+              disabled={pending || unpurchasable}
+              whileHover={{ scale: pending ? 1 : 1.015 }}
+              whileTap={{ scale: pending ? 1 : 0.98 }}
+              className="btn-primary-gradient w-full py-4 mt-7 flex items-center justify-center gap-2 disabled:opacity-70"
             >
-              <Lock size={13} className="text-rose-gold" />
-              <span
-                className="text-ink/65"
-                style={{ fontFamily: "var(--font-manrope)", fontSize: "0.8rem" }}
+              <Lock size={13} />
+              {pending ? "Taking you to checkout…" : "Proceed to Payment"}
+            </motion.button>
+
+            {unpurchasable && (
+              <motion.p
+                variants={fadeUp}
+                role="status"
+                className="mt-3 text-center text-ink/55"
+                style={{ fontFamily: "var(--font-manrope)", fontSize: "0.75rem" }}
               >
-                Secure payment coming soon
-              </span>
-            </motion.div>
+                One of these items is no longer available. Remove it to continue.
+              </motion.p>
+            )}
+
+            <motion.p
+              variants={fadeUp}
+              className="mt-4 text-center text-ink/45"
+              style={{ fontFamily: "var(--font-manrope)", fontSize: "0.7rem" }}
+            >
+              You’ll complete payment securely on Shopify.
+            </motion.p>
           </motion.div>
         )}
       </div>
+
+      <AuthErrorToast message={error} onDismiss={() => setError("")} />
     </section>
   );
 }
