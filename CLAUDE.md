@@ -231,7 +231,7 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
 - **Structured data** (#14): schema.org payloads are built by pure functions in
   `src/lib/structured-data.ts` and rendered by `src/components/JsonLd.tsx` — `Product` +
   `BreadcrumbList` on `/store/[slug]`, `Organization` site-wide from `layout.tsx`.
-  **`JsonLd` escapes `<` to `<`, and that line is load-bearing** — Shopify descriptions are
+  **`JsonLd` escapes `<` to `\u003c`, and that line is load-bearing** — Shopify descriptions are
   merchant-controlled free text, so one containing `</script>` would otherwise close the tag early
   and have the rest parsed as markup.
   **The block is deliberately not nonced.** `proxy.ts` sets `script-src 'self' 'nonce-…'`, but a
@@ -245,6 +245,16 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   for a related reason: Shopify's `vendor` is not fetched and reads "My Store" on most of the live
   catalogue. Absolute URLs come from `absoluteUrl()`, which passes Shopify CDN URLs through
   untouched.
+- **`llms.txt` and AI crawlers** (#14): `src/app/llms.txt/route.ts` serves the llmstxt.org
+  convention — an H1, a blockquote summary, then annotated links. **The filename is plural**;
+  #14 calls it "llm.txt" but `llms.txt` is the name crawlers actually look for. It is a Route
+  Handler rather than a file in `public/` so the product list tracks Shopify, and it reuses
+  `getProducts()` to inherit the hourly revalidate and the `products` tag — a product webhook
+  refreshes it too. Keep it `○ (Static)` in the build output; it reads no request data.
+  `robots.ts` names the AI crawlers explicitly and **repeats `PRIVATE_PATHS` for that group**.
+  That repetition is load-bearing, not copy-paste: per the robots.txt spec a crawler obeys only
+  the most specific group matching its name and ignores `*` entirely, so naming GPTBot without
+  the disallows would *widen* its access to `/account` rather than leave it unchanged.
 - **Page pattern**: a top-level route is a server `page.tsx` (`<Navbar /> … <Footer />` +
   `metadata`) that renders a `"use client"` `*Content.tsx` for interactivity (see
   `app/account`, `app/checkout`). Route protection lives in `src/proxy.ts` (Next 16 renamed the
