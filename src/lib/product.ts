@@ -109,6 +109,20 @@ export function defaultVariant(
   );
 }
 
+/**
+ * The product's category, but only when it is a real one.
+ *
+ * `toProduct` substitutes the literal "Product" when Shopify's `productType` is empty —
+ * true for most of the live catalogue — and that value describes nothing. Callers that
+ * publish a category (JSON-LD, llms.txt) should omit it rather than assert a non-fact,
+ * so this returns undefined for the fallback.
+ */
+export function meaningfulCategory(product: ShopifyProduct): string | undefined {
+  return product.category && product.category !== "Product"
+    ? product.category
+    : undefined;
+}
+
 export function isSoldOut(product: ShopifyProduct): boolean {
   const variants = product.variants;
   // A product with no variant data (e.g. a placeholder) isn't "sold out".

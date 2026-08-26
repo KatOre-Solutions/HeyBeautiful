@@ -4,7 +4,12 @@
 // from a scratch script without a render. Rendering is `@/components/JsonLd`, which owns
 // the escaping.
 
-import { defaultVariant, isSoldOut, type ShopifyProduct } from "@/lib/product";
+import {
+  defaultVariant,
+  isSoldOut,
+  meaningfulCategory,
+  type ShopifyProduct,
+} from "@/lib/product";
 import { absoluteUrl, siteUrl } from "@/lib/site";
 
 const BRAND_NAME = "Hey Beautiful";
@@ -82,12 +87,8 @@ export function productJsonLd(product: ShopifyProduct) {
         }
       : {};
 
-  // `category` falls back to the literal "Product" when Shopify's productType is empty,
-  // which says nothing — omit it rather than assert a meaningless category.
-  const category =
-    product.category && product.category !== "Product"
-      ? { category: product.category }
-      : {};
+  const realCategory = meaningfulCategory(product);
+  const category = realCategory ? { category: realCategory } : {};
 
   return {
     "@context": "https://schema.org",

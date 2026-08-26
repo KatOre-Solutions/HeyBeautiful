@@ -13,7 +13,7 @@
 // refreshes this file too.
 
 import { getProducts } from "@/lib/shopify";
-import { isSoldOut, type ShopifyProduct } from "@/lib/product";
+import { isSoldOut, meaningfulCategory, type ShopifyProduct } from "@/lib/product";
 import { formatPrice } from "@/lib/format";
 import { siteUrl } from "@/lib/site";
 
@@ -32,10 +32,9 @@ function productLine(product: ShopifyProduct, base: string): string {
   const price = formatPrice(product.price);
   const stock = isSoldOut(product) ? " Currently sold out." : "";
   const summary = summarise(product.description);
-  // `category` falls back to the literal "Product" when Shopify's productType is empty,
-  // which tells a reader nothing — drop it rather than pad the line with a non-fact.
-  const category = product.category === "Product" ? "" : product.category;
-  const detail = [price, category, summary].filter(Boolean).join(" · ");
+  const detail = [price, meaningfulCategory(product), summary]
+    .filter(Boolean)
+    .join(" · ");
 
   return `- [${product.name}](${base}/store/${product.slug}): ${detail}${stock}`;
 }
