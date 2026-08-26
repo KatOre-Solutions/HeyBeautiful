@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import { ClientWrapper } from "@/components/ClientWrapper";
+import { siteUrl } from "@/lib/site";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -19,7 +20,10 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://heybeautiful.com"),
+  // Resolved per deploy rather than hardcoded, so this and `sitemap.ts` can never quote
+  // different origins. The previous literal was heybeautiful.com, which is not connected
+  // yet (#18) — every relative OG image was resolving against a host that doesn't answer.
+  metadataBase: new URL(siteUrl()),
   title: "Hey Beautiful — Fuel Your Strength. Keep Your Glow.",
   description:
     "Premium feminine wellness supplements crafted for the modern woman. Performance meets femininity. Strength meets beauty. Elevate your everyday ritual.",
