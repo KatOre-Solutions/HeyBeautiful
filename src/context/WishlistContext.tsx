@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { toAnalyticsItem, trackEcommerce } from "@/lib/analytics";
 import { WISHLIST_STORAGE_KEY as STORAGE_KEY } from "@/lib/constants";
 import type { CartLine } from "@/lib/product";
 
@@ -116,6 +117,12 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, [items, loaded]);
 
   const toggleItem = (product: WishlistProduct) => {
+    // Only the add direction is an event. GA4 has no `remove_from_wishlist`, and inventing
+    // a custom one would sit outside the standard ecommerce reports where it is useless.
+    if (!items.some((p) => p.id === product.id)) {
+      trackEcommerce("add_to_wishlist", [toAnalyticsItem(product)]);
+    }
+
     setItems((prev) =>
       prev.some((p) => p.id === product.id)
         ? prev.filter((p) => p.id !== product.id)

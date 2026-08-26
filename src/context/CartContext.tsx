@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { toAnalyticsItem, trackEcommerce } from "@/lib/analytics";
 import { CART_STORAGE_KEY as STORAGE_KEY, MAX_CART_QUANTITY } from "@/lib/constants";
 
 export interface CartProduct {
@@ -105,6 +106,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, loaded]);
 
   const addItem = useCallback((product: Omit<CartProduct, "quantity">) => {
+    // Fired outside the state updater on purpose: React may invoke an updater twice in
+    // development StrictMode, which would double-count the event.
+    trackEcommerce("add_to_cart", [toAnalyticsItem(product, 1)]);
+
     setItems((prev) => {
       const existing = prev.find((p) => p.id === product.id);
       if (existing) {
@@ -119,20 +124,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeItem = useCallback((id: string) => {
+    const going = items.find((p) => p.id === id);
+    if (going) {
+      trackEcommerce("remove_from_cart", [
+        toAnalyticsItem(going, going.quantity),
+      ]);
+    }
     setItems((prev) => prev.filter((p) => p.id !== id));
-  }, []);
+    // `items` in the deps is free here: the provider's value is an inline object, so it is
+    // rebuilt on every render anyway and no consumer was relying on a stable identity.
+  }, [items]);
 
   const updateQuantity = useCallback((id: string, quantity: number) => {
     // Clamped to the same ceiling the checkout endpoint enforces (#31), so the
     // control simply stops rather than letting a shopper build a bag that is
     // rejected at the last step.
     const capped = Math.min(quantity, MAX_CART_QUANTITY);
+
+    // Stepping a line down to zero is a removal, and reads as one in the funnel.
+    if (capped <= 0) {
+      const going = items.find((p) => p.id === id);
+      if (going) {
+        trackEcommerce("remove_from_cart", [
+          toAnalyticsItem(going, going.quantity),
+        ]);
+      }
+    }
+
     setItems((prev) =>
       capped <= 0
         ? prev.filter((p) => p.id !== id)
         : prev.map((p) => (p.id === id ? { ...p, quantity: capped } : p))
     );
-  }, []);
+  }, [items]);
 
   const isInCart = useCallback(
     (id: string) => items.some((p) => p.id === id),

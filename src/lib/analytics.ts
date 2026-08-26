@@ -31,18 +31,61 @@ declare global {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+let bootstrapped = false;
+
+/**
+ * Queues the consent default, then the config, exactly once.
+ *
+ * This lives here rather than in a component effect because effect order made it wrong:
+ * React runs child effects before parent ones, so the product page's `view_item` fired
+ * before `<Analytics>` had pushed anything — putting a measurement command ahead of the
+ * consent default, which Google explicitly requires to come first. Driving it from `push`
+ * makes the order impossible to get wrong: whatever fires first triggers the bootstrap
+ * ahead of itself.
+ */
+function bootstrap(): void {
+  if (bootstrapped) return;
+  bootstrapped = true;
+
+  window.dataLayer = window.dataLayer ?? [];
+
+  // Denied before anything else. Under Consent Mode v2 this still yields cookieless pings,
+  // so traffic shape survives a visitor who never answers the banner.
+  window.dataLayer.push([
+    "consent",
+    "default",
+    {
+      analytics_storage: "denied",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+    },
+  ]);
+
+  // A returning visitor who already accepted shouldn't spend a page view denied.
+  if (readStoredConsent() === "granted") {
+    window.dataLayer.push(["consent", "update", { analytics_storage: "granted" }]);
+  }
+
+  window.dataLayer.push(["js", new Date()]);
+  // `send_page_view: false` because this is a single-page app: gtag.js only ever sees the
+  // first load, so page views are sent explicitly and would otherwise double count the
+  // landing page.
+  window.dataLayer.push(["config", GA_MEASUREMENT_ID, { send_page_view: false }]);
+}
+
 /**
  * Pushes to `dataLayer` directly rather than calling `window.gtag`.
  *
- * The two are equivalent once gtag.js has loaded, but events fired before it finishes
- * loading would be dropped by a `window.gtag` call that isn't defined yet. `dataLayer` is
- * created synchronously by the consent bootstrap, so anything queued on it is replayed
- * when the script arrives — which matters for `view_item`, fired on first paint.
+ * The two are equivalent once gtag.js has loaded, but an event fired before it finishes
+ * loading would be dropped by a `window.gtag` that isn't defined yet. `dataLayer` is a
+ * plain array, so anything queued on it is replayed when the script arrives — which
+ * matters for `view_item`, fired on first paint.
  */
 function push(...args: GtagArgs): void {
   if (typeof window === "undefined" || !isAnalyticsConfigured()) return;
-  window.dataLayer = window.dataLayer ?? [];
-  window.dataLayer.push(args);
+  bootstrap();
+  window.dataLayer!.push(args);
 }
 
 /** The visitor's stored choice, or null if they haven't answered yet. */
@@ -129,6 +172,39 @@ export interface AnalyticsItem {
   quantity?: number;
 }
 
+/**
+ * Maps a cart line or product to GA4's item shape.
+ *
+ * Structurally typed rather than importing `CartLine`, so this module stays independent of
+ * the product model. `item_id` prefers the Shopify variant id because that is the actual
+ * SKU — the thing a merchandiser can look up — falling back to the namespaced cart key for
+ * lines that have no variant.
+ */
+export function toAnalyticsItem(
+  line: {
+    id: string;
+    name: string;
+    category: string;
+    price: number;
+    variantId?: string | null;
+  },
+  quantity?: number
+): AnalyticsItem {
+  // "Product" is what `toProduct` substitutes for an empty Shopify productType, and
+  // shipping it would fill GA4's category dimension with a word that distinguishes nothing.
+  // The JSON-LD builder makes the same call; PR #99 extracts both onto a shared
+  // `meaningfulCategory()` helper, which this should collapse onto once that lands.
+  const category = line.category !== "Product" ? line.category : undefined;
+
+  return {
+    item_id: line.variantId ?? line.id,
+    item_name: line.name,
+    price: line.price,
+    ...(category ? { item_category: category } : {}),
+    ...(quantity !== undefined ? { quantity } : {}),
+  };
+}
+
 type EcommerceEvent =
   | "view_item"
   | "view_item_list"
@@ -147,6 +223,9 @@ export function trackEcommerce(
   items: AnalyticsItem[],
   extra?: Record<string, unknown>
 ): void {
+  // A list impression has no monetary value — summing the prices of a grid produces a
+  // number no report should show — so `value` is omitted for it and sent for everything else.
+  const monetary = event !== "view_item_list";
   const value = items.reduce(
     (sum, item) => sum + item.price * (item.quantity ?? 1),
     0
@@ -154,7 +233,7 @@ export function trackEcommerce(
 
   push("event", event, {
     currency: "ZAR",
-    value: Number(value.toFixed(2)),
+    ...(monetary ? { value: Number(value.toFixed(2)) } : {}),
     items,
     ...extra,
   });
