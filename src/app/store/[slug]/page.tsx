@@ -5,6 +5,8 @@ import Footer from "@/components/Footer";
 import { getProducts, getProductBySlug } from "@/lib/shopify";
 import { getRelatedProducts } from "@/lib/product";
 import ProductDetailContent from "./ProductDetailContent";
+import JsonLd from "@/components/JsonLd";
+import { breadcrumbJsonLd, productJsonLd } from "@/lib/structured-data";
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -39,6 +41,15 @@ export default async function ProductPage({
 
   return (
     <main>
+      {/* Placeholders are the unconfigured-store "Coming Soon" tiles — nothing about
+          them is a real offer. They have no handle so they cannot reach this route,
+          but describing one to a search engine would be wrong if they ever did. */}
+      {!product.placeholder && (
+        <>
+          <JsonLd data={productJsonLd(product)} />
+          <JsonLd data={breadcrumbJsonLd(product)} />
+        </>
+      )}
       <Navbar />
       <ProductDetailContent product={product} related={related} />
       <Footer />

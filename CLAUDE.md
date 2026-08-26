@@ -228,6 +228,23 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   a list would imply robots.txt protects something. `sitemap.ts` must keep using the same
   `filter((p) => p.slug)` predicate as `generateStaticParams`, or it will advertise URLs that
   have no prerendered page.
+- **Structured data** (#14): schema.org payloads are built by pure functions in
+  `src/lib/structured-data.ts` and rendered by `src/components/JsonLd.tsx` — `Product` +
+  `BreadcrumbList` on `/store/[slug]`, `Organization` site-wide from `layout.tsx`.
+  **`JsonLd` escapes `<` to `<`, and that line is load-bearing** — Shopify descriptions are
+  merchant-controlled free text, so one containing `</script>` would otherwise close the tag early
+  and have the rest parsed as markup.
+  **The block is deliberately not nonced.** `proxy.ts` sets `script-src 'self' 'nonce-…'`, but a
+  script with a non-executable type is a *data block* — the HTML spec returns from "prepare the
+  script element" before the CSP inline check, so `script-src` never applies. Noncing it would mean
+  reading `headers()` in the page, which demotes the prerendered product routes to dynamic for no
+  benefit. Keep `/store/<handle>` showing as `●` in the build output.
+  **`aggregateRating` is gated on the development-catalogue flag.** `placeholder-products.ts`
+  hardcodes invented ratings, and publishing those is what earns a manual action for fake review
+  snippets — so ratings are only emitted when the real catalogue is in play. `brand` is hardcoded
+  for a related reason: Shopify's `vendor` is not fetched and reads "My Store" on most of the live
+  catalogue. Absolute URLs come from `absoluteUrl()`, which passes Shopify CDN URLs through
+  untouched.
 - **Page pattern**: a top-level route is a server `page.tsx` (`<Navbar /> … <Footer />` +
   `metadata`) that renders a `"use client"` `*Content.tsx` for interactivity (see
   `app/account`, `app/checkout`). Route protection lives in `src/proxy.ts` (Next 16 renamed the
