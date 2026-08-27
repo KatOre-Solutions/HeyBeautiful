@@ -24,6 +24,34 @@ const PRIVATE_PATHS = [
   "/api/",
 ];
 
+/**
+ * AI crawlers, named explicitly so the policy is a decision rather than a side effect of
+ * the wildcard.
+ *
+ * The private paths are REPEATED for this group on purpose, and dropping them would be a
+ * real bug: per the robots.txt spec a crawler obeys only the most specific group matching
+ * its name and ignores `*` entirely. Naming GPTBot without repeating the disallows would
+ * therefore *widen* its access to /account and /checkout rather than leave it unchanged.
+ *
+ * Allowed because Hey Beautiful is a new brand with nothing proprietary on the site —
+ * being citable when someone asks an assistant for wellness supplements is free
+ * distribution. Flipping this to `disallow: "/"` is the only edit needed to reverse it.
+ */
+const AI_CRAWLERS = [
+  "GPTBot",
+  "OAI-SearchBot",
+  "ChatGPT-User",
+  "ClaudeBot",
+  "Claude-User",
+  "Claude-SearchBot",
+  "PerplexityBot",
+  "Perplexity-User",
+  "Google-Extended",
+  "Applebot-Extended",
+  "CCBot",
+  "meta-externalagent",
+];
+
 export default function robots(): MetadataRoute.Robots {
   // Deploy previews serve the entire site on a public URL. Left indexable they would
   // compete with production as duplicate content, so they are closed off wholesale — and
@@ -39,6 +67,11 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
+        allow: "/",
+        disallow: PRIVATE_PATHS,
+      },
+      {
+        userAgent: AI_CRAWLERS,
         allow: "/",
         disallow: PRIVATE_PATHS,
       },
