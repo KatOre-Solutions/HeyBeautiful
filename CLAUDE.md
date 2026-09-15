@@ -198,6 +198,19 @@ For non-feature work substitute the type segment: `fix`, `chore`, `refactor`, `d
   products first, then tops up in catalogue order (`BEST_SELLING` for Shopify) — deterministic,
   never random. Cards render `displayTags()`, which strips the marker; `toProduct` keeps the raw
   tag list whole because the 3-tag cap is a card concern.
+- **Payments — Payfast custom integration** (#31): `src/lib/payfast.ts` (server-only) signs,
+  `/api/payfast/initiate` prices the cart **from Shopify** and returns a signed form the
+  browser POSTs to Payfast, `/api/payfast/notify` handles the ITN. Never trust the client's
+  prices — the cart is localStorage. The signature is MD5 over `key=value&…&passphrase=…`
+  using **PHP `urlencode`** (space → `+`, `!'()*~` escaped, uppercase hex) with fields in
+  Payfast's **documented form order, not alphabetical**; `signPayload` enforces the order and
+  throws on any field missing from `FIELD_ORDER`. `PAYFAST_PASSPHRASE` is mandatory here
+  though optional at Payfast — without it the signature is unkeyed and forgeable. Only the
+  exact string `PAYFAST_LIVE=true` takes real money. The ITN runs all four Payfast checks
+  (signature, source IP via DNS, server confirmation, amount) and always answers 200, since
+  a retry can't fix a rejected notification. ⚠️ `/checkout/success` is presentation only —
+  a shopper can reach it without paying, so the ITN is the sole proof of payment.
+  **Not yet wired: order persistence and fulfilment** — see `recordPaidOrder`.
 - **Prices always go through `formatPrice`** (`src/lib/format.ts`) — never construct an
   `Intl.NumberFormat` in a component. It renders `R 54` for whole amounts and `R 54,99`
   when there are cents; three divergent copies once made one screen show both `R 68` and

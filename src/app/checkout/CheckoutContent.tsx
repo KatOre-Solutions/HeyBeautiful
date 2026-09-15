@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Lock } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import { sessionExpiredLoginUrl, withFrom } from "@/lib/redirect";
 import { clearSessionHint } from "@/lib/session";
-import AuthErrorToast from "@/components/auth/AuthErrorToast";
 
 export default function CheckoutContent() {
   const router = useRouter();
@@ -21,70 +20,67 @@ export default function CheckoutContent() {
   // One-shot guard: React Strict Mode double-invokes effects in dev, and we never
   // want two navigations racing.
   const redirected = useRef(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
 
-  // A line with no Shopify variant can't be bought (#92). Nothing should be able
-  // to put one in the bag — bundles no longer enter it and placeholder tiles have
-  // no purchase controls — so this is a guard against a future regression, not a
-  // live path. Better a disabled button than a rejected checkout.
-  const unpurchasable = items.some((item) => item.variantId === null);
-
-  // Pressing Back from Shopify restores this page from the bfcache (the norm on
-  // iOS Safari, common elsewhere), and React state comes back with it — including
-  // `pending: true`, which is deliberately left set on the success path below.
-  // Without this the shopper returns to a button stuck on "Taking you to
-  // checkout…" and cannot retry short of a hard reload. The bag survives but
-  // checkout doesn't, which defeats the point of keeping the bag at all.
-  useEffect(() => {
-    const onPageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) setPending(false);
-    };
-    window.addEventListener("pageshow", onPageShow);
-    return () => window.removeEventListener("pageshow", onPageShow);
-  }, []);
-
-  const handleCheckout = async () => {
-    if (pending) return;
-    setError("");
-    setPending(true);
+  /**
+   * Hands the bag to Payfast.
+   *
+   * We send ids and quantities only — the server prices the cart from Shopify
+   * and signs the result, because the cart lives in localStorage and any price
+   * originating here is shopper-controlled (see /api/payfast/initiate).
+   *
+   * The redirect is a real form POST rather than `location.href`: Payfast's
+   * custom integration expects the signed fields as form-encoded POST data, and
+   * a GET with them in the query string is rejected. `paying` is never reset on
+   * the success path — the browser is leaving, and clearing it would flash the
+   * button back to its idle state mid-navigation.
+   */
+  const payWithPayfast = useCallback(async () => {
+    setPaying(true);
+    setPayError(null);
 
     try {
-      const res = await fetch("/api/checkout", {
+      const response = await fetch("/api/payfast/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lines: items.map((item) => ({
-            variantId: item.variantId,
-            quantity: item.quantity,
-          })),
-          // Prefill only — Shopify collects and owns the real order details.
+          items: items.map(({ id, quantity }) => ({ id, quantity })),
           email: user?.email ?? undefined,
         }),
       });
 
-      const data = await res.json().catch(() => null);
+      const data = await response.json();
 
-      if (!res.ok || !data?.checkoutUrl) {
-        setError(data?.message ?? "We couldn't start checkout. Please try again.");
-        setPending(false);
+      if (!response.ok) {
+        // The route returns shopper-facing copy for the cases a shopper can act
+        // on (out of stock, bundle in bag); anything else gets a generic line.
+        setPayError(
+          typeof data?.error === "string"
+            ? data.error
+            : "We couldn't start your payment. Please try again."
+        );
+        setPaying(false);
         return;
       }
 
-      // The bag is deliberately NOT cleared: the shopper may abandon payment or
-      // press back, and losing their bag at that moment is how a sale is lost.
-      // Shopify owns the order, so the bag stays until they empty it themselves.
-      //
-      // `pending` is deliberately NOT reset here either — the browser is still
-      // navigating away, and resetting flashes the button back to its idle label.
-      // `router.push` is for internal routes; this is the app's one external
-      // navigation, which CSP's `form-action 'self'` does not restrict.
-      window.location.assign(data.checkoutUrl);
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = data.url;
+      for (const [name, value] of Object.entries(data.fields as Record<string, string>)) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
     } catch {
-      setError("We couldn't reach checkout. Check your connection and try again.");
-      setPending(false);
+      setPayError("We couldn't reach the payment service. Please try again.");
+      setPaying(false);
     }
-  };
+  }, [items, user]);
 
   // Two client-side guards the edge proxy can't do (it only sees the presence
   // cookie): (1) stale-cookie / dead session → login; (2) unverified email →
@@ -245,42 +241,47 @@ export default function CheckoutContent() {
               </span>
             </motion.div>
 
-            <motion.button
-              variants={fadeUp}
-              type="button"
-              onClick={handleCheckout}
-              disabled={pending || unpurchasable}
-              whileHover={{ scale: pending ? 1 : 1.015 }}
-              whileTap={{ scale: pending ? 1 : 0.98 }}
-              className="btn-primary-gradient w-full py-4 mt-7 flex items-center justify-center gap-2 disabled:opacity-70"
-            >
-              <Lock size={13} />
-              {pending ? "Taking you to checkout…" : "Proceed to Payment"}
-            </motion.button>
-
-            {unpurchasable && (
-              <motion.p
-                variants={fadeUp}
-                role="status"
-                className="mt-3 text-center text-ink/55"
-                style={{ fontFamily: "var(--font-manrope)", fontSize: "0.75rem" }}
+            <motion.div variants={fadeUp} className="mt-7">
+              <button
+                type="button"
+                onClick={payWithPayfast}
+                disabled={paying}
+                className="btn-luxury btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                One of these items is no longer available. Remove it to continue.
-              </motion.p>
-            )}
+                {paying ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Redirecting…
+                  </>
+                ) : (
+                  <>
+                    <Lock size={13} />
+                    Pay {formatPrice(totalPrice)}
+                  </>
+                )}
+              </button>
 
-            <motion.p
-              variants={fadeUp}
-              className="mt-4 text-center text-ink/45"
-              style={{ fontFamily: "var(--font-manrope)", fontSize: "0.7rem" }}
-            >
-              You’ll complete payment securely on Shopify.
-            </motion.p>
+              {payError && (
+                <p
+                  role="alert"
+                  className="mt-3 text-center text-blush-600"
+                  style={{ fontFamily: "var(--font-manrope)", fontSize: "0.8rem" }}
+                >
+                  {payError}
+                </p>
+              )}
+
+              <p
+                className="mt-3 flex items-center justify-center gap-1.5 text-ink/45"
+                style={{ fontFamily: "var(--font-manrope)", fontSize: "0.7rem" }}
+              >
+                <Lock size={10} className="text-rose-gold" />
+                Secured by Payfast — you&rsquo;ll complete payment on their site.
+              </p>
+            </motion.div>
           </motion.div>
         )}
       </div>
-
-      <AuthErrorToast message={error} onDismiss={() => setError("")} />
     </section>
   );
 }

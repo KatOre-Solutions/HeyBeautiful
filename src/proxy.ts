@@ -36,7 +36,11 @@ function buildCsp(nonce: string): string {
     `media-src 'self'`,
     `object-src 'none'`,
     `base-uri 'self'`,
-    `form-action 'self'`,
+    // Checkout hands off by POSTing a signed form to Payfast's process URL, so
+    // 'self' alone would block payments outright once this policy is enforced.
+    // Both hosts are listed because the sandbox is a different origin and is
+    // what every non-production deploy uses (see PAYFAST_LIVE).
+    `form-action 'self' https://www.payfast.co.za https://sandbox.payfast.co.za`,
     `frame-ancestors 'none'`,
   ].join("; ");
 }
